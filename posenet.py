@@ -46,7 +46,7 @@ def parse_output(heatmap_data, offset_data, threshold):
     #print("Num of joints is ", joint_num)
 
     #create 2D array of zeros (17 x 3) to hold joint coordinates and score for each joint
-    pose_kps = np.zeros((joint_num, 3), np.uint32)
+    pose_kps = np.zeros((joint_num, 3), np.float32)
 
     '''
     print("HEATMAP_DATA")
@@ -76,13 +76,13 @@ def parse_output(heatmap_data, offset_data, threshold):
         #squeeze converts the array to 1D
 
         #divide the max_val_pos array members by 8 (since row/col indices start at 0), mult by 257, and convert to int to get actual coordinates of keypoint
-        remap_pos = np.array(max_val_pos / 8 * 257, dtype = np.int32)
+        remap_pos = np.array(max_val_pos / 8.0 * 257.0, dtype = np.float32)
 
         #get appropriate offset value and add it to the row coord of the keypoint, then store x coord in pose_kps
-        pose_kps[i, 0] = int(remap_pos[0] + offset_data[max_val_pos[0], max_val_pos[1], i])
+        pose_kps[i, 0] = remap_pos[0] + offset_data[max_val_pos[0], max_val_pos[1], i]
 
         #get appropriate offset value (need to index into the second 17 of offset vectors' third dim as noted above), add it to column coord, and store
-        pose_kps[i, 1] = int(remap_pos[1] + offset_data[max_val_pos[0], max_val_pos[1], i + joint_num])
+        pose_kps[i, 1] = remap_pos[1] + offset_data[max_val_pos[0], max_val_pos[1], i + joint_num]
 
 
         #if we're confident enough that this joint was found
@@ -90,7 +90,7 @@ def parse_output(heatmap_data, offset_data, threshold):
             #if we know that this keypoint was found INSIDE the image
             if pose_kps[i, 0] < 257 and pose_kps[i, 1] < 257:
                 #add an adjusted score of "1" to third slot of this keypoint
-                pose_kps[i, 2] = 1
+                pose_kps[i, 2] = 1.0
 
     #return array of keypoints
     return pose_kps

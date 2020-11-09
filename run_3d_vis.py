@@ -46,8 +46,11 @@ elif args.dataset.startswith('humaneva'):
     from common.humaneva_dataset import HumanEvaDataset
     dataset = HumanEvaDataset(dataset_path)
 elif args.dataset.startswith('custom'):
+    print("CUSTOM DATASET")
     from common.custom_dataset import CustomDataset
-    dataset = CustomDataset('data/data_2d_' + args.dataset + '_' + args.keypoints + '.npz')
+
+    print('outs/data_2d_' + args.dataset + '_' + args.keypoints + '.npz')
+    dataset = CustomDataset('outs/data_2d_' + args.dataset + '_' + args.keypoints + '.npz') #NOTE CHANGE
 else:
     raise KeyError('Invalid dataset')
 
@@ -60,14 +63,16 @@ for subject in dataset.subjects():
             positions_3d = []
             for cam in anim['cameras']:
                 pos_3d = world_to_camera(anim['positions'], R=cam['orientation'], t=cam['translation'])
-                pos_3d[:, 1:] -= pos_3d[:, :1] # Remove global offset, but keep trajectory in first position
+                pos_3d[:, 1:] -= pos_3d[:, :1] #Remove global offset, but keep trajectory in first position
                 positions_3d.append(pos_3d)
             anim['positions_3d'] = positions_3d
+        else:
+            print("No positions in anim")
 
 print('Loading 2D detections...')
 
 #load the output of prepare_data_2d_custom.py
-keypoints = np.load('data/data_2d_' + args.dataset + '_' + args.keypoints + '.npz', allow_pickle=True)
+keypoints = np.load('outs/data_2d_' + args.dataset + '_' + args.keypoints + '.npz', allow_pickle=True) #NOTE CHANGE
 
 keypoints_metadata = keypoints['metadata'].item()
 
@@ -97,12 +102,23 @@ for subject in dataset.subjects():
                 keypoints[subject][action][cam_idx] = keypoints[subject][action][cam_idx][:mocap_length]
 
         assert len(keypoints[subject][action]) == len(dataset[subject][action]['positions_3d'])
+
+
+print(dataset.cameras())
         
-for subject in keypoints.keys():
-    for action in keypoints[subject]:
-        for cam_idx, kps in enumerate(keypoints[subject][action]):
-            # Normalize camera frame
+for subject in keypoints.keys(): #should just be one subject if one video
+    print("SUBJECT: ", subject)
+    for action in keypoints[subject]: #should just be one action, which is 'custom'
+        print("ACTION: ", action)
+        for cam_idx, kps in enumerate(keypoints[subject][action]): #each kps is the 17x2 array of coordinates
+            print("INDEX ", cam_idx, "KPS: ", kps)
+
+
+            print(dataset.cameras()[subject][cam_idx])
+
+            #Normalize camera frame
             cam = dataset.cameras()[subject][cam_idx]
+
             kps[..., :2] = normalize_screen_coordinates(kps[..., :2], w=cam['res_w'], h=cam['res_h'])
             keypoints[subject][action][cam_idx] = kps
 

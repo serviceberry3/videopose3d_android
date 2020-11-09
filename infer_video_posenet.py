@@ -113,7 +113,8 @@ def main(args):
     #for each video passed
     for video_name in im_list:
         #get absolute path of output directory
-        out_name = os.path.join(args.output_dir, os.path.basename(video_name))
+        #out_name = os.path.join(args.output_dir, os.path.basename(video_name))
+        out_name=os.path.join(args.output_dir, "data_2d_custom_myvideos")
 
         #print name of video that we're processing
         print('Processing {}'.format(video_name))
@@ -168,7 +169,7 @@ def main(args):
         output[canonical_name] = {}
 
         #add keypoint locations to output array
-        output[canonical_name]['custom'] = np.array(keypoints)
+        output[canonical_name]['custom'] = [np.array(keypoints)]
 
         #add video resolution metadata to output array
         metadata['video_metadata'][canonical_name] = this_vid_metadata
