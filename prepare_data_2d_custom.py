@@ -25,6 +25,8 @@ def decode(filename):
     #get the different data types
     bb = data['boxes']
     kp = data['keypoints']
+
+    #this line will yield something like {'w': 1080, 'h': 1920} with video res
     metadata = data['metadata'].item()
 
     #initialize results arrays
@@ -266,7 +268,7 @@ def decode(filename):
         'end_frame': len(kp), # Exclusive
         'bounding_boxes': bb,
         'keypoints': kp,
-    }], metadata
+    }], metadata #metadata is still just something like {'w': 1080, 'h': 1920}
 
 
 if __name__ == '__main__':
@@ -290,9 +292,16 @@ if __name__ == '__main__':
     
     print('Parsing 2D detections from', args.input)
     
+    #gets some suggested COCO metadata like keypoint symmetries
     metadata = suggest_metadata('coco')
+
+    '''NOTES
+    {} defines an empty dict
+    [] defines an empty list
+    These are fundamentally different types. A dict is an associative array, a list is a standard array with integral indices.'''
+
+    #set video metadata and output to empty arrays
     metadata['video_metadata'] = {}
-    
     output = {}
 
     #get all npz files (all video outputs)
@@ -310,7 +319,7 @@ if __name__ == '__main__':
         #add keypoint locations to output array
         output[canonical_name]['custom'] = [data[0]['keypoints'].astype('float32')]
 
-        #add metadata to output array
+        #add video resolution metadata to output array
         metadata['video_metadata'][canonical_name] = video_metadata
 
     #create new npz with output data
