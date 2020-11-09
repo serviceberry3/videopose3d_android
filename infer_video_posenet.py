@@ -168,7 +168,7 @@ def main(args):
         output[canonical_name] = {}
 
         #add keypoint locations to output array
-        output[canonical_name]['custom'] = [keypoints]
+        output[canonical_name]['custom'] = np.array(keypoints)
 
         #add video resolution metadata to output array
         metadata['video_metadata'][canonical_name] = this_vid_metadata
