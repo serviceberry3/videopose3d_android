@@ -50,7 +50,7 @@ elif args.dataset.startswith('custom'):
     from common.custom_dataset import CustomDataset
 
     print('outs/data_2d_' + args.dataset + '_' + args.keypoints + '.npz')
-    dataset = CustomDataset('outs/data_2d_' + args.dataset + '_' + args.keypoints + '.npz') #NOTE CHANGE
+    dataset = CustomDataset('data/data_2d_' + args.dataset + '_' + args.keypoints + '.npz') #NOTE CHANGE
 else:
     raise KeyError('Invalid dataset')
 
@@ -72,7 +72,7 @@ for subject in dataset.subjects():
 print('Loading 2D detections...')
 
 #load the output of prepare_data_2d_custom.py
-keypoints = np.load('outs/data_2d_' + args.dataset + '_' + args.keypoints + '.npz', allow_pickle=True) #NOTE CHANGE
+keypoints = np.load('data/data_2d_' + args.dataset + '_' + args.keypoints + '.npz', allow_pickle=True) #NOTE CHANGE
 
 keypoints_metadata = keypoints['metadata'].item()
 

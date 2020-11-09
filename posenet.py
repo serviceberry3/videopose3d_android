@@ -79,10 +79,10 @@ def parse_output(heatmap_data, offset_data, threshold):
         remap_pos = np.array(max_val_pos / 8.0 * 257.0, dtype = np.float32)
 
         #get appropriate offset value and add it to the row coord of the keypoint, then store x coord in pose_kps
-        pose_kps[i, 0] = remap_pos[0] + offset_data[max_val_pos[0], max_val_pos[1], i]
+        pose_kps[i, 0] = remap_pos[1] + offset_data[max_val_pos[0], max_val_pos[1], i + joint_num]
 
         #get appropriate offset value (need to index into the second 17 of offset vectors' third dim as noted above), add it to column coord, and store
-        pose_kps[i, 1] = remap_pos[1] + offset_data[max_val_pos[0], max_val_pos[1], i + joint_num]
+        pose_kps[i, 1] = remap_pos[0] + offset_data[max_val_pos[0], max_val_pos[1], i]
 
 
         #if we're confident enough that this joint was found
@@ -217,8 +217,8 @@ def estimate_pose(image_src):
     #print(kps)
 
     for kp in kps:
-        kp[0] *= height_scaler
-        kp[1] *= width_scaler
+        kp[1] *= height_scaler
+        kp[0] *= width_scaler
 
     #print(kps)
 
