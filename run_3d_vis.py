@@ -38,6 +38,9 @@ except OSError as e:
 print('Loading dataset...')
 dataset_path = 'data/data_3d_' + args.dataset + '.npz'
 
+#don't use ellipsis to truncate arrays when printing
+#np.set_printoptions(threshold=sys.maxsize)
+
 #choose dataset
 if args.dataset == 'h36m':
     from common.h36m_dataset import Human36mDataset
@@ -49,21 +52,41 @@ elif args.dataset.startswith('custom'):
     print("CUSTOM DATASET")
     from common.custom_dataset import CustomDataset
 
-    print('outs/data_2d_' + args.dataset + '_' + args.keypoints + '.npz')
+    #check path of npz
+    print('PATH: outs/data_2d_' + args.dataset + '_' + args.keypoints + '.npz')
+
+    #create new CustomDataset object
     dataset = CustomDataset('data/data_2d_' + args.dataset + '_' + args.keypoints + '.npz') #NOTE CHANGE
 else:
     raise KeyError('Invalid dataset')
 
 print('Preparing data...')
-for subject in dataset.subjects():
+
+print(dataset.subjects()) #looks like dict_keys(['../vids/output.mp4'])
+for subject in dataset.subjects(): #should have just one subject, which will be '../vids/output.mp4'
+    print(dataset[subject]) 
+    '''looks like {'custom': {'cameras': {'id': '../vids/output.mp4', 'res_w': 1080, 'res_h': 1920, 
+    'azimuth': 70, 'orientation': array([ 0.14070565, -0.15007018, -0.7552408 ,  0.62232804], dtype=float32), 
+    'translation': array([1.841107 , 4.9552846, 1.5634454], dtype=float32)}}}'''
+
+    print(dataset[subject].keys()) #something like dict_keys(['custom'])
+
+    #should just be one key 'custom'
     for action in dataset[subject].keys():
         anim = dataset[subject][action]
+        print(anim) 
+        
+        '''anim looks like {'cameras': {'id': '../vids/output.mp4', 'res_w': 1080, 'res_h': 1920, 'azimuth': 70, 
+        'orientation': array([ 0.14070565, -0.15007018, -0.7552408 ,  0.62232804], dtype=float32), 'translation': array([1.841107 , 
+        4.9552846, 1.5634454], dtype=float32)}}'''
         
         if 'positions' in anim:
             positions_3d = []
             for cam in anim['cameras']:
                 pos_3d = world_to_camera(anim['positions'], R=cam['orientation'], t=cam['translation'])
+
                 pos_3d[:, 1:] -= pos_3d[:, :1] #Remove global offset, but keep trajectory in first position
+
                 positions_3d.append(pos_3d)
             anim['positions_3d'] = positions_3d
         else:
@@ -71,26 +94,43 @@ for subject in dataset.subjects():
 
 print('Loading 2D detections...')
 
+#LOAD THE 2D DATA
+
 #load the output of prepare_data_2d_custom.py
 keypoints = np.load('data/data_2d_' + args.dataset + '_' + args.keypoints + '.npz', allow_pickle=True) #NOTE CHANGE
 
+#get the metadata
 keypoints_metadata = keypoints['metadata'].item()
 
+#get keypoints symmetry
 keypoints_symmetry = keypoints_metadata['keypoints_symmetry']
 
+#separate keypoints symmetry lists
 kps_left, kps_right = list(keypoints_symmetry[0]), list(keypoints_symmetry[1])
 
+#get joints from the h3.6m skeleton
 joints_left, joints_right = list(dataset.skeleton().joints_left()), list(dataset.skeleton().joints_right())
 
+#get actual keypoint coords
 keypoints = keypoints['positions_2d'].item()
 
-for subject in dataset.subjects():
+
+#DO CHECKS (DOESN'T APPLY TO US)
+for subject in dataset.subjects(): #should have just one subject, which will be '../vids/output.mp4'
+    #make sure this video title is in keypoints
     assert subject in keypoints, 'Subject {} is missing from the 2D detections dataset'.format(subject)
+
+    #should just be one key 'custom'
     for action in dataset[subject].keys():
         assert action in keypoints[subject], 'Action {} of subject {} is missing from the 2D detections dataset'.format(action, subject)
-        if 'positions_3d' not in dataset[subject][action]:
+
+
+        if 'positions_3d' not in dataset[subject][action]: #USUALLY NOT
+            print("positions_3d not in dataset['../vids/output.mp4]['custom']")
             continue
-            
+        
+
+
         for cam_idx in range(len(keypoints[subject][action])):
             
             # We check for >= instead of == because some videos in H3.6M contain extra frames
@@ -106,39 +146,64 @@ for subject in dataset.subjects():
 
 print(dataset.cameras())
         
-for subject in keypoints.keys(): #should just be one subject if one video
+
+#NORMALIZE THE KEYPOINTS FOR THE RES
+for subject in keypoints.keys(): #should just be one subject if one video (i.e. '../vids/output.mp4')
     print("SUBJECT: ", subject)
     for action in keypoints[subject]: #should just be one action, which is 'custom'
         print("ACTION: ", action)
-        for cam_idx, kps in enumerate(keypoints[subject][action]): #each kps is the 17x2 array of coordinates
+
+        for cam_idx, kps in enumerate(keypoints[subject][action]): #each kps should be the Fx17x2 array of coordinates, where F is num frames
             print("INDEX ", cam_idx, "KPS: ", kps)
 
 
             print(dataset.cameras()[subject][cam_idx])
+            '''looks like {'id': '../vids/output.mp4', 'res_w': 1080, 'res_h': 1920, 'azimuth': 70, 'orientation': array([ 0.14070565, 
+            -0.15007018, -0.7552408 ,  0.62232804], dtype=float32), 'translation': array([1.841107 , 4.9552846, 1.5634454], dtype=float32)}'''
 
             #Normalize camera frame
             cam = dataset.cameras()[subject][cam_idx]
 
+            #modify the keypoints. Replace them with res of running normalize_screen_coords with them for the given camera res
             kps[..., :2] = normalize_screen_coordinates(kps[..., :2], w=cam['res_w'], h=cam['res_h'])
+
+            print("KEYPOINTS AFTER NORM_SCREEN_COORDS: ", kps)
+
+            #store new kps in actual keypoints
             keypoints[subject][action][cam_idx] = kps
 
+
+#SEMI-SUPERVISED TRAINING CHECK
 subjects_train = args.subjects_train.split(',')
+print("SUBJECTS_TRAIN", subjects_train) #looks like ['S1', 'S5', 'S6', 'S7', 'S8']
+
 subjects_semi = [] if not args.subjects_unlabeled else args.subjects_unlabeled.split(',')
+
 if not args.render:
     subjects_test = args.subjects_test.split(',')
 else:
-    subjects_test = [args.viz_subject]
+    print("args.render true, setting subjects_test to [args.viz_subject] which is ", [args.viz_subject])
+    subjects_test = [args.viz_subject] #which is ['../vids/output.mp4']
+
 
 semi_supervised = len(subjects_semi) > 0
+
 if semi_supervised and not dataset.supports_semi_supervised():
     raise RuntimeError('Semi-supervised training is not implemented for this dataset')
             
-def fetch(subjects, action_filter=None, subset=1, parse_3d_poses=True):
+
+
+def fetch(subjects, action_filter = None, subset = 1, parse_3d_poses = True):
+    #initialize everything to empty arrays
     out_poses_3d = []
     out_poses_2d = []
     out_camera_params = []
-    for subject in subjects:
-        for action in keypoints[subject].keys():
+
+
+    for subject in subjects: #only will be one subject which is something like '../vids/output.mp4'
+        #keypoints['../vids/output.mp4'].keys() should only contain 'custom'
+        for action in keypoints[subject].keys():  #for just 'custom'
+            #NEVER TRUE, IGNORE
             if action_filter is not None:
                 found = False
                 for a in action_filter:
@@ -148,29 +213,51 @@ def fetch(subjects, action_filter=None, subset=1, parse_3d_poses=True):
                 if not found:
                     continue
                 
+
+            #sets poses_2d to the actual 3D array of keypoints (ig 4D since we put the 3D array into []??)
             poses_2d = keypoints[subject][action]
+
+            #len(poses_2d) should just be 1
+            print("LENGTH: ", len(poses_2d))
+
             for i in range(len(poses_2d)): # Iterate across cameras
+                #append the 3D keypoints array to out_poses_2d
                 out_poses_2d.append(poses_2d[i])
-                
+
+            
+            #ALWAYS TRUE FOR NOW
             if subject in dataset.cameras():
+                print("subject in dataset.cameras()")
                 cams = dataset.cameras()[subject]
                 assert len(cams) == len(poses_2d), 'Camera count mismatch'
+
+                #add the camera params to out_camera_params
                 for cam in cams:
                     if 'intrinsic' in cam:
                         out_camera_params.append(cam['intrinsic'])
                 
+            #NEVER TRUE, IGNORE
             if parse_3d_poses and 'positions_3d' in dataset[subject][action]:
+                print("parse_3d_poses true, 'positions_3d' found in dataset[subject][action]")
                 poses_3d = dataset[subject][action]['positions_3d']
                 assert len(poses_3d) == len(poses_2d), 'Camera count mismatch'
                 for i in range(len(poses_3d)): # Iterate across cameras
                     out_poses_3d.append(poses_3d[i])
     
+    #nullify out_camera_params if still empty
     if len(out_camera_params) == 0:
         out_camera_params = None
+
+    #nullify out_poses_3d if still empty (WHICH ALWAYS IS)
     if len(out_poses_3d) == 0:
         out_poses_3d = None
     
-    stride = args.downsample
+
+    print("DOWNSAMPLE: ", args.downsample)
+    stride = args.downsample #ALWAYS 1
+
+
+    #NEVER TRUE, IGNORE
     if subset < 1:
         for i in range(len(out_poses_2d)):
             n_frames = int(round(len(out_poses_2d[i])//stride * subset)*stride)
@@ -178,40 +265,64 @@ def fetch(subjects, action_filter=None, subset=1, parse_3d_poses=True):
             out_poses_2d[i] = out_poses_2d[i][start:start+n_frames:stride]
             if out_poses_3d is not None:
                 out_poses_3d[i] = out_poses_3d[i][start:start+n_frames:stride]
+
+    #NEVER TRUE, IGNORE
     elif stride > 1:
-        # Downsample as requested
+        #Downsample as requested
         for i in range(len(out_poses_2d)):
             out_poses_2d[i] = out_poses_2d[i][::stride]
             if out_poses_3d is not None:
                 out_poses_3d[i] = out_poses_3d[i][::stride]
     
 
+    #return the camera parameters, 3d poses (None), and 2d poses (from Posenet)
     return out_camera_params, out_poses_3d, out_poses_2d
 
+
+
 action_filter = None if args.actions == '*' else args.actions.split(',')
-if action_filter is not None:
+
+
+if action_filter is not None: #it's always coming up as None
     print('Selected actions:', action_filter)
     
+
+#should get camera params, None, and an array of 3D arrays of 2D keypoints, respectively
 cameras_valid, poses_valid, poses_valid_2d = fetch(subjects_test, action_filter)
 
-filter_widths = [int(x) for x in args.architecture.split(',')]
+print("ARCHITECTURE: ", args.architecture)
+filter_widths = [int(x) for x in args.architecture.split(',')] #this is [3, 3, 3, 3, 3]
+print("FILTER_WIDTHS: ", filter_widths)
+
+#ALWAYS TRUE
 if not args.disable_optimizations and not args.dense and args.stride == 1:
-    # Use optimized model for single-frame predictions
+    print("No disable opts or dense specified")
+
+
+    #Use optimized model for single-frame predictions
+    #pass 3D array of keypoints
     model_pos_train = TemporalModelOptimized1f(poses_valid_2d[0].shape[-2], poses_valid_2d[0].shape[-1], dataset.skeleton().num_joints(),
                                 filter_widths=filter_widths, causal=args.causal, dropout=args.dropout, channels=args.channels)
+
+#IGNORE
 else:
-    # When incompatible settings are detected (stride > 1, dense filters, or disabled optimization) fall back to normal model
+    #When incompatible settings are detected (stride > 1, dense filters, or disabled optimization) fall back to normal model
     model_pos_train = TemporalModel(poses_valid_2d[0].shape[-2], poses_valid_2d[0].shape[-1], dataset.skeleton().num_joints(),
                                 filter_widths=filter_widths, causal=args.causal, dropout=args.dropout, channels=args.channels,
                                 dense=args.dense)
     
+#instantiate a TemporalModel
 model_pos = TemporalModel(poses_valid_2d[0].shape[-2], poses_valid_2d[0].shape[-1], dataset.skeleton().num_joints(),
                             filter_widths=filter_widths, causal=args.causal, dropout=args.dropout, channels=args.channels,
                             dense=args.dense)
 
+
+
 receptive_field = model_pos.receptive_field()
 print('INFO: Receptive field: {} frames'.format(receptive_field))
+
 pad = (receptive_field - 1) // 2 # Padding on each side
+
 if args.causal:
     print('INFO: Using causal convolutions')
     causal_shift = pad
@@ -219,24 +330,43 @@ else:
     causal_shift = 0
 
 model_params = 0
+
 for parameter in model_pos.parameters():
     model_params += parameter.numel()
+
 print('INFO: Trainable parameter count:', model_params)
 
+
+#set up cuda if it's available
 if torch.cuda.is_available():
     model_pos = model_pos.cuda()
     model_pos_train = model_pos_train.cuda()
+else:
+    print("No cuda available")
     
+
+#ALWAYS TRUE
 if args.resume or args.evaluate:
+    print("Resume or evaluate true")
+
+
     chk_filename = os.path.join(args.checkpoint, args.resume if args.resume else args.evaluate)
+
+
     print('Loading checkpoint', chk_filename)
+
     checkpoint = torch.load(chk_filename, map_location=lambda storage, loc: storage)
+
     print('This model was trained for {} epochs'.format(checkpoint['epoch']))
+
+
     model_pos_train.load_state_dict(checkpoint['model_pos'])
     model_pos.load_state_dict(checkpoint['model_pos'])
     
+
+    #NEVER TRUE, IGNORE
     if args.evaluate and 'model_traj' in checkpoint:
-        # Load trajectory model if it contained in the checkpoint (e.g. for inference in the wild)
+        #Load trajectory model if it contained in the checkpoint (e.g. for inference in the wild)
         model_traj = TemporalModel(poses_valid_2d[0].shape[-2], poses_valid_2d[0].shape[-1], 1,
                             filter_widths=filter_widths, causal=args.causal, dropout=args.dropout, channels=args.channels,
                             dense=args.dense)
@@ -244,15 +374,20 @@ if args.resume or args.evaluate:
             model_traj = model_traj.cuda()
         model_traj.load_state_dict(checkpoint['model_traj'])
     else:
+        print("No model_traj in checkpoint")
         model_traj = None
         
     
+#instantiate an UnchunkedGenerator
 test_generator = UnchunkedGenerator(cameras_valid, poses_valid, poses_valid_2d,
                                     pad=pad, causal_shift=causal_shift, augment=False,
                                     kps_left=kps_left, kps_right=kps_right, joints_left=joints_left, joints_right=joints_right)
 print('INFO: Testing on {} frames'.format(test_generator.num_frames()))
 
+
+#IF WE WANT TO TRAIN THE MODEL. CAN IGNORE THIS FOR NOW ASSUMING WE ALWAYS USED PRE-TRAINED MODEL IN ANDROID APP.............................................
 if not args.evaluate:
+    print("args.evaluate came up FALSE")
     cameras_train, poses_train, poses_train_2d = fetch(subjects_train, action_filter, subset=args.subset)
 
     lr = args.learning_rate
@@ -673,9 +808,13 @@ if not args.evaluate:
                 plt.xlim((3, epoch))
                 plt.savefig(os.path.join(args.checkpoint, 'loss_2d.png'))
             plt.close('all')
+#END IGNORE SECTION...........................................................................................................................................
 
-# Evaluate
+
+
+#Evaluate
 def evaluate(test_generator, action=None, return_predictions=False, use_trajectory_model=False):
+    print("evaluate() called!")
     epoch_loss_3d_pos = 0
     epoch_loss_3d_pos_procrustes = 0
     epoch_loss_3d_pos_scale = 0
@@ -761,7 +900,9 @@ if args.render:
     gen = UnchunkedGenerator(None, None, [input_keypoints],
                              pad=pad, causal_shift=causal_shift, augment=args.test_time_augmentation,
                              kps_left=kps_left, kps_right=kps_right, joints_left=joints_left, joints_right=joints_right)
+
     prediction = evaluate(gen, return_predictions=True)
+
     if model_traj is not None and ground_truth is None:
         prediction_traj = evaluate(gen, return_predictions=True, use_trajectory_model=True)
         prediction += prediction_traj
@@ -807,6 +948,8 @@ if args.render:
                          input_video_path=args.viz_video, viewport=(cam['res_w'], cam['res_h']),
                          input_video_skip=args.viz_skip)
     
+
+
 else:
     print('Evaluating...')
     all_actions = {}
