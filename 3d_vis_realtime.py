@@ -19,12 +19,16 @@ import math
 #Load the models
 from joints_detectors.openpose.main import load_model as Model2Dload
 model2D = Model2Dload()
+
 from joints_detectors.openpose.main import generate_frame_kpt as OpenPoseInterface
 interface2D = OpenPoseInterface
+
 from tools.utils import videopose_model_load as Model3Dload
 model3D = Model3Dload()
+
 from tools.utils import interface as VideoPoseInterface
 interface3D = VideoPoseInterface
+
 from tools.utils import draw_3Dimg, draw_2Dimg, videoInfo, resize_img, common
 
 
