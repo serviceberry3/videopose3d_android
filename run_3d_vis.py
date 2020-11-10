@@ -202,17 +202,7 @@ def fetch(subjects, action_filter = None, subset = 1, parse_3d_poses = True):
 
     for subject in subjects: #only will be one subject which is something like '../vids/output.mp4'
         #keypoints['../vids/output.mp4'].keys() should only contain 'custom'
-        for action in keypoints[subject].keys():  #for just 'custom'
-            #NEVER TRUE, IGNORE
-            if action_filter is not None:
-                found = False
-                for a in action_filter:
-                    if action.startswith(a):
-                        found = True
-                        break
-                if not found:
-                    continue
-                
+        for action in keypoints[subject].keys():  #for just 'custom'                
 
             #sets poses_2d to the actual 3D array of keypoints (ig 4D since we put the 3D array into []??)
             poses_2d = keypoints[subject][action]
@@ -235,14 +225,6 @@ def fetch(subjects, action_filter = None, subset = 1, parse_3d_poses = True):
                 for cam in cams:
                     if 'intrinsic' in cam:
                         out_camera_params.append(cam['intrinsic'])
-                
-            #NEVER TRUE, IGNORE
-            if parse_3d_poses and 'positions_3d' in dataset[subject][action]:
-                print("parse_3d_poses true, 'positions_3d' found in dataset[subject][action]")
-                poses_3d = dataset[subject][action]['positions_3d']
-                assert len(poses_3d) == len(poses_2d), 'Camera count mismatch'
-                for i in range(len(poses_3d)): # Iterate across cameras
-                    out_poses_3d.append(poses_3d[i])
     
     #nullify out_camera_params if still empty
     if len(out_camera_params) == 0:
@@ -255,24 +237,6 @@ def fetch(subjects, action_filter = None, subset = 1, parse_3d_poses = True):
 
     print("DOWNSAMPLE: ", args.downsample)
     stride = args.downsample #ALWAYS 1
-
-
-    #NEVER TRUE, IGNORE
-    if subset < 1:
-        for i in range(len(out_poses_2d)):
-            n_frames = int(round(len(out_poses_2d[i])//stride * subset)*stride)
-            start = deterministic_random(0, len(out_poses_2d[i]) - n_frames + 1, str(len(out_poses_2d[i])))
-            out_poses_2d[i] = out_poses_2d[i][start:start+n_frames:stride]
-            if out_poses_3d is not None:
-                out_poses_3d[i] = out_poses_3d[i][start:start+n_frames:stride]
-
-    #NEVER TRUE, IGNORE
-    elif stride > 1:
-        #Downsample as requested
-        for i in range(len(out_poses_2d)):
-            out_poses_2d[i] = out_poses_2d[i][::stride]
-            if out_poses_3d is not None:
-                out_poses_3d[i] = out_poses_3d[i][::stride]
     
 
     #return the camera parameters, 3d poses (None), and 2d poses (from Posenet)
@@ -287,7 +251,7 @@ if action_filter is not None: #it's always coming up as None
     print('Selected actions:', action_filter)
     
 
-#should get camera params, None, and an array of 3D arrays of 2D keypoints, respectively
+#Should get camera params, None, and an array of 3D arrays of 2D keypoints, respectively
 cameras_valid, poses_valid, poses_valid_2d = fetch(subjects_test, action_filter)
 
 print("ARCHITECTURE: ", args.architecture)
@@ -304,12 +268,6 @@ if not args.disable_optimizations and not args.dense and args.stride == 1:
     model_pos_train = TemporalModelOptimized1f(poses_valid_2d[0].shape[-2], poses_valid_2d[0].shape[-1], dataset.skeleton().num_joints(),
                                 filter_widths=filter_widths, causal=args.causal, dropout=args.dropout, channels=args.channels)
 
-#IGNORE
-else:
-    #When incompatible settings are detected (stride > 1, dense filters, or disabled optimization) fall back to normal model
-    model_pos_train = TemporalModel(poses_valid_2d[0].shape[-2], poses_valid_2d[0].shape[-1], dataset.skeleton().num_joints(),
-                                filter_widths=filter_widths, causal=args.causal, dropout=args.dropout, channels=args.channels,
-                                dense=args.dense)
     
 #instantiate a TemporalModel, the default model which uses temporal convolutions and can be used for all use cases
 model_pos = TemporalModel(poses_valid_2d[0].shape[-2], poses_valid_2d[0].shape[-1], dataset.skeleton().num_joints(),
@@ -369,18 +327,7 @@ if args.resume or args.evaluate:
     model_pos.load_state_dict(checkpoint['model_pos'])
     
 
-    #NEVER TRUE, IGNORE
-    if args.evaluate and 'model_traj' in checkpoint:
-        #Load trajectory model if it contained in the checkpoint (e.g. for inference in the wild)
-        model_traj = TemporalModel(poses_valid_2d[0].shape[-2], poses_valid_2d[0].shape[-1], 1,
-                            filter_widths=filter_widths, causal=args.causal, dropout=args.dropout, channels=args.channels,
-                            dense=args.dense)
-        if torch.cuda.is_available():
-            model_traj = model_traj.cuda()
-        model_traj.load_state_dict(checkpoint['model_traj'])
-    else:
-        print("No model_traj in checkpoint")
-        model_traj = None
+    model_traj=None
         
     
 #Instantiate an UnchunkedGenerator. Non-batched data generator, used for testing. Sequences are returned one at a time
@@ -512,23 +459,23 @@ if args.render:
     #Run evaluate on the generator for all frames
     prediction = evaluate(gen, return_predictions=True)
 
+    #IGNORE
     if model_traj is not None and ground_truth is None:
+        print("KEYED")
         prediction_traj = evaluate(gen, return_predictions=True, use_trajectory_model=True)
         prediction += prediction_traj
     
+    #Can specify location for exporting the 3D joing positions, right now not doing this
     if args.viz_export is not None:
         print('Exporting joint positions to', args.viz_export)
-        # Predictions are in camera space
+
+        #Predictions are in camera space
         np.save(args.viz_export, prediction)
     
+
+    #If there's an output video location specified, that means we need to render the animation video
     if args.viz_output is not None:
-        if ground_truth is not None:
-            # Reapply trajectory
-            trajectory = ground_truth[:, :1]
-            ground_truth[:, 1:] += trajectory
-            prediction += trajectory
-        
-        # Invert camera transformation
+        #Invert camera transformation
         cam = dataset.cameras()[args.viz_subject][args.viz_camera]
         if ground_truth is not None:
             prediction = camera_to_world(prediction, R=cam['orientation'], t=cam['translation'])
@@ -558,7 +505,7 @@ if args.render:
                          input_video_skip=args.viz_skip)
     
 
-
+#If not rendering
 else:
     print('Evaluating...')
     all_actions = {}
