@@ -9,27 +9,22 @@ from pyqtgraph.Qt import QtCore, QtGui
 import pyqtgraph.opengl as gl
 import pyqtgraph as pg
 from pyqtgraph.opengl import *
-from argparse import ArgumentParser
 import cv2
+
+#progress bar animator
 from tqdm import tqdm
 import numpy as np
 import time
 import math
 
-#Load the models
-from joints_detectors.openpose.main import load_model as Model2Dload
-model2D = Model2Dload()
-
-from joints_detectors.openpose.main import generate_frame_kpt as OpenPoseInterface
-interface2D = OpenPoseInterface
-
-from tools.utils import videopose_model_load as Model3Dload
-
 #Load the VideoPose3D model
+from tools.utils import videopose_model_load as Model3Dload
 model3D = Model3Dload()
 
+#Load interface for running inference
 from tools.utils import interface as interface3d
 
+#Import more utils
 from tools.utils import draw_3Dimg, draw_2Dimg, videoInfo, resize_img, common
 
 
@@ -40,10 +35,9 @@ pos_init = np.zeros(shape=(17,3))
 
 
 class Visualizer(object):
-    def __init__(self, input_video):
+    def __init__(self):
         #initialize traces to blank dict
         self.traces = dict()
-
 
         self.app = QtGui.QApplication(sys.argv)
         self.w = gl.GLViewWidget()
@@ -73,10 +67,10 @@ class Visualizer(object):
         #Special settings
 
         #Open up a VideoCapture for live frame feed
-        self.cap = cv2.VideoCapture(input_video)
+        self.cap = cv2.VideoCapture(0)
 
         #set video name
-        self.video_name = input_video.split('/')[-1].split('.')[0]
+        #self.video_name = input_video.split('/')[-1].split('.')[0]
 
         #intialize 2D keypoints to empty array
         self.kpt2Ds = []
@@ -191,11 +185,12 @@ def main():
     #Instantiate a Visualizer object for the input video file
     v = Visualizer()
 
+    '''
     #Start up realtime 3D animation for Visualizer
     v.animation()
 
     #Close all open windows after animation ends
-    cv2.destroyAllWindows()
+    cv2.destroyAllWindows()'''
 
 #Main entrance point
 if __name__ == '__main__':

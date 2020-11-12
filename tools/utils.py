@@ -78,7 +78,8 @@ def draw_2Dimg(img, kpt, display=None):
     return im
 
 def draw_3Dimg(pos, image, display=None, kpt2D=None):
-    from mpl_toolkits.mplot3d import Axes3D # projection 3D 必须要这个
+    #for 3D projection
+    from mpl_toolkits.mplot3d import Axes3D
     from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
     fig = plt.figure(figsize=(12,6))
     canvas = FigureCanvas(fig)
@@ -98,7 +99,8 @@ def draw_3Dimg(pos, image, display=None, kpt2D=None):
     ax.set_zlim3d([0, radius])
     ax.set_ylim3d([-radius/2, radius/2])
     ax.set_aspect('equal')
-    # 坐标轴刻度
+
+
     ax.set_xticklabels([])
     ax.set_yticklabels([])
     ax.set_zticklabels([])
@@ -111,12 +113,14 @@ def draw_3Dimg(pos, image, display=None, kpt2D=None):
             continue
 
         col = 'red' if j in joints_right else 'black'
-        # 画图3D
+        
         ax.plot([pos[j, 0], pos[j_parent, 0]],
                                     [pos[j, 1], pos[j_parent, 1]],
                                     [pos[j, 2], pos[j_parent, 2]], zdir='z', c=col)
     width, height = fig.get_size_inches() * fig.get_dpi()
-    canvas.draw()       # draw the canvas, cache the renderer
+
+    # draw the canvas, cache the renderer
+    canvas.draw()       
     image = np.fromstring(canvas.tostring_rgb(), dtype='uint8').reshape(int(height), int(width), 3)
     if display:
         cv2.imshow('im', image)
@@ -156,7 +160,10 @@ def videopose_model_load():
     chk_filename = main_path + '/checkpoint/cpn-pt-243.bin'
     checkpoint = torch.load(chk_filename, map_location=lambda storage, loc: storage)# 把loc映射到storage
     model_pos = TemporalModel(17, 2, 17,filter_widths=[3,3,3,3,3] , causal=False, dropout=False, channels=1024, dense=False)
-    model_pos = model_pos.cuda()
+
+    #bypass CUDA for now to run only on CPU
+    #model_pos = model_pos.cuda()
+
     model_pos.load_state_dict(checkpoint['model_pos'])
     receptive_field = model_pos.receptive_field()
     return model_pos
