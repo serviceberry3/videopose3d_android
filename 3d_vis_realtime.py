@@ -39,6 +39,7 @@ class Visualizer(object):
         #initialize traces to blank dict
         self.traces = dict()
 
+
         self.app = QtGui.QApplication(sys.argv)
         self.w = gl.GLViewWidget()
 
@@ -114,12 +115,22 @@ class Visualizer(object):
 
 
         if item % 2 != 1:
+
             frame, W, H = resize_img(frame)
+
+
             joint2D = interface2D(frame, model2D)
+            print
+
+
             img2D  = draw_2Dimg(frame, joint2D, 1)
+
+            
             if item == 0:
                 for _ in range(30):
                     self.kpt2Ds.append(joint2D)
+
+
             elif item < 30:
                 self.kpt2Ds.append(joint2D)
                 self.kpt2Ds.pop(0)
