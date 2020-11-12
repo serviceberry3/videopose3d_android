@@ -41,28 +41,21 @@ dataset_path = 'data/data_3d_' + args.dataset + '.npz'
 #don't use ellipsis to truncate arrays when printing
 #np.set_printoptions(threshold=sys.maxsize)
 
-#choose dataset
-if args.dataset == 'h36m':
-    from common.h36m_dataset import Human36mDataset
-    dataset = Human36mDataset(dataset_path)
-elif args.dataset.startswith('humaneva'):
-    from common.humaneva_dataset import HumanEvaDataset
-    dataset = HumanEvaDataset(dataset_path)
-elif args.dataset.startswith('custom'):
-    print("CUSTOM DATASET")
-    from common.custom_dataset import CustomDataset
 
-    #check path of npz
-    print('PATH: outs/data_2d_' + args.dataset + '_' + args.keypoints + '.npz')
+#dataset init
+from common.custom_dataset import CustomDataset
 
-    #create new CustomDataset object
-    dataset = CustomDataset('data/data_2d_' + args.dataset + '_' + args.keypoints + '.npz') #NOTE CHANGE
-else:
-    raise KeyError('Invalid dataset')
+#check path of npz
+print('PATH: outs/data_2d_' + args.dataset + '_' + args.keypoints + '.npz')
+
+#create new CustomDataset object
+dataset = CustomDataset('data/data_2d_' + args.dataset + '_' + args.keypoints + '.npz') #NOTE CHANGE
+
 
 print('Preparing data...')
 
 print(dataset.subjects()) #looks like dict_keys(['../vids/output.mp4'])
+
 for subject in dataset.subjects(): #should have just one subject, which will be '../vids/output.mp4'
     print(dataset[subject]) 
     '''looks like {'custom': {'cameras': {'id': '../vids/output.mp4', 'res_w': 1080, 'res_h': 1920, 
@@ -129,7 +122,6 @@ for subject in dataset.subjects(): #should have just one subject, which will be 
             print("positions_3d not in dataset['../vids/output.mp4]['custom']")
             continue
         
-
 
         for cam_idx in range(len(keypoints[subject][action])):
             
@@ -352,10 +344,12 @@ print('INFO: Testing on {} frames'.format(test_generator.num_frames()))
 #Evaluate
 def evaluate(test_generator, action=None, return_predictions=False, use_trajectory_model=False):
     print("evaluate() called!")
+
     epoch_loss_3d_pos = 0
     epoch_loss_3d_pos_procrustes = 0
     epoch_loss_3d_pos_scale = 0
     epoch_loss_3d_vel = 0
+
     with torch.no_grad():
         if not use_trajectory_model:
             model_pos.eval()
@@ -385,6 +379,7 @@ def evaluate(test_generator, action=None, return_predictions=False, use_trajecto
                 return predicted_3d_pos.squeeze(0).cpu().numpy()
                 
             inputs_3d = torch.from_numpy(batch.astype('float32'))
+            
             if torch.cuda.is_available():
                 inputs_3d = inputs_3d.cuda()
             inputs_3d[:, :, 0] = 0    
@@ -459,13 +454,7 @@ if args.render:
     #Run evaluate on the generator for all frames
     prediction = evaluate(gen, return_predictions=True)
 
-    #IGNORE
-    if model_traj is not None and ground_truth is None:
-        print("KEYED")
-        prediction_traj = evaluate(gen, return_predictions=True, use_trajectory_model=True)
-        prediction += prediction_traj
-    
-    #Can specify location for exporting the 3D joing positions, right now not doing this
+    #Can specify location for exporting the 3D joint positions, right now not doing this
     if args.viz_export is not None:
         print('Exporting joint positions to', args.viz_export)
 
@@ -475,29 +464,31 @@ if args.render:
 
     #If there's an output video location specified, that means we need to render the animation video
     if args.viz_output is not None:
+
         #Invert camera transformation
         cam = dataset.cameras()[args.viz_subject][args.viz_camera]
-        if ground_truth is not None:
-            prediction = camera_to_world(prediction, R=cam['orientation'], t=cam['translation'])
-            ground_truth = camera_to_world(ground_truth, R=cam['orientation'], t=cam['translation'])
-        else:
-            # If the ground truth is not available, take the camera extrinsic params from a random subject.
-            # They are almost the same, and anyway, we only need this for visualization purposes.
-            for subject in dataset.cameras():
-                if 'orientation' in dataset.cameras()[subject][args.viz_camera]:
-                    rot = dataset.cameras()[subject][args.viz_camera]['orientation']
-                    break
-            prediction = camera_to_world(prediction, R=rot, t=0)
-            # We don't have the trajectory, but at least we can rebase the height
-            prediction[:, :, 2] -= np.min(prediction[:, :, 2])
+
+
+        #Since we're not using ground truths, take camera extrinsic params from a random subject.
+        #They are almost the same, and anyway, we only need this for visualization purposes.
+        for subject in dataset.cameras():
+            if 'orientation' in dataset.cameras()[subject][args.viz_camera]:
+                rot = dataset.cameras()[subject][args.viz_camera]['orientation']
+                break
+
+        #Convert all 3D coordinates we got from evaluate() from camera to world coords
+        prediction = camera_to_world(prediction, R=rot, t=0)
+
+        #We don't have the trajectory, but at least we can rebase the height
+        prediction[:, :, 2] -= np.min(prediction[:, :, 2])
         
         anim_output = {'Reconstruction': prediction}
-        if ground_truth is not None and not args.viz_no_ground_truth:
-            anim_output['Ground truth'] = ground_truth
         
         input_keypoints = image_coordinates(input_keypoints[..., :2], w=cam['res_w'], h=cam['res_h'])
         
         from common.visualization import render_animation
+
+        #Render the video
         render_animation(input_keypoints, keypoints_metadata, anim_output,
                          dataset.skeleton(), dataset.fps(), args.viz_bitrate, cam['azimuth'], args.viz_output,
                          limit=args.viz_limit, downsample=args.viz_downsample, size=args.viz_size,
@@ -529,12 +520,12 @@ else:
 
         for subject, action in actions:
             poses_2d = keypoints[subject][action]
-            for i in range(len(poses_2d)): # Iterate across cameras
+            for i in range(len(poses_2d)): #Iterate across cameras
                 out_poses_2d.append(poses_2d[i])
 
             poses_3d = dataset[subject][action]['positions_3d']
             assert len(poses_3d) == len(poses_2d), 'Camera count mismatch'
-            for i in range(len(poses_3d)): # Iterate across cameras
+            for i in range(len(poses_3d)): #Iterate across cameras
                 out_poses_3d.append(poses_3d[i])
 
         stride = args.downsample

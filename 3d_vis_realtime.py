@@ -24,10 +24,11 @@ from joints_detectors.openpose.main import generate_frame_kpt as OpenPoseInterfa
 interface2D = OpenPoseInterface
 
 from tools.utils import videopose_model_load as Model3Dload
+
+#Load the VideoPose3D model
 model3D = Model3Dload()
 
-from tools.utils import interface as VideoPoseInterface
-interface3D = VideoPoseInterface
+from tools.utils import interface as interface3d
 
 from tools.utils import draw_3Dimg, draw_2Dimg, videoInfo, resize_img, common
 
@@ -38,16 +39,20 @@ item_num = 0
 pos_init = np.zeros(shape=(17,3))
 
 
-
 class Visualizer(object):
     def __init__(self, input_video):
+        #initialize traces to blank dict
         self.traces = dict()
+
+
         self.app = QtGui.QApplication(sys.argv)
         self.w = gl.GLViewWidget()
+
         self.w.opts['distance'] = 45.0       #Distance of camera from center
         self.w.opts['fov'] = 60              #Horizontal field of view in degrees
         self.w.opts['elevation'] = 10       #Camera's angle of elevation in degrees
         self.w.opts['azimuth'] = 90         #Camera's azimuthal angle in degrees
+
         self.w.setWindowTitle('pyqtgraph example: GLLinePlotItem')
         self.w.setGeometry(450, 700, 980, 700) 
         self.w.show()
@@ -66,11 +71,17 @@ class Visualizer(object):
         self.w.addItem(gz)
 
         #Special settings
-        self.cap = cv2.VideoCapture(input_video)
-        self.video_name = input_video.split('/')[-1].split('.')[0]
-        self.kpt2Ds = []
-        pos = pos_init
 
+        #Open up a VideoCapture for live frame feed
+        self.cap = cv2.VideoCapture(input_video)
+
+        #set video name
+        self.video_name = input_video.split('/')[-1].split('.')[0]
+
+        #intialize 2D keypoints to empty array
+        self.kpt2Ds = []
+
+        pos = pos_init
 
         for j, j_parent in enumerate(common.skeleton_parents):
             if j_parent == -1:
@@ -80,6 +91,7 @@ class Visualizer(object):
             y = np.array([pos[j, 1], pos[j_parent, 1]]) * 10
             z = np.array([pos[j, 2], pos[j_parent, 2]]) * 10 - 10
             pos_total = np.vstack([x,y,z]).transpose()
+
             self.traces[j] = gl.GLLinePlotItem(pos=pos_total, color=pg.glColor((j, 10)), width=6,  antialias=True)
             self.w.addItem(self.traces[j])
 
@@ -98,9 +110,15 @@ class Visualizer(object):
         global item_num
         num = item/2
         azimuth_value = abs(num%120 + math.pow(-1, int((num/120))) * 120) % 120
+
         self.w.opts['azimuth'] = azimuth_value
+
         print(item, '  ')
+
+        #read in a frame from the VideoCapture
         _, frame = self.cap.read()
+
+
         if item % 2 != 1:
             frame, W, H = resize_img(frame)
             joint2D = interface2D(frame, model2D)
@@ -116,7 +134,10 @@ class Visualizer(object):
                 self.kpt2Ds.pop(0)
 
             item += 1
+
+            #run 2D-3D inference using VideoPose3D model
             joint3D = interface3D(model3D, np.array(self.kpt2Ds), W, H)
+
             pos = joint3D[-1] #(17, 3)
 
             for j, j_parent in enumerate(common.skeleton_parents):
@@ -157,6 +178,8 @@ class Visualizer(object):
             item_num += 1
         else:
             item += 1
+
+    #Start up the live realtime 3D animation
     def animation(self):
         timer = QtCore.QTimer()
         timer.timeout.connect(self.update)
@@ -165,16 +188,14 @@ class Visualizer(object):
 
 
 def main():
-    parser = ArgumentParser()
-    parser.add_argument("-i", "--video", help="Input video file name", default=None)
-    args = parser.parse_args()
+    #Instantiate a Visualizer object for the input video file
+    v = Visualizer()
 
-    #Print out the video name specified
-    print(args.video)
-    v = Visualizer(args.video)
+    #Start up realtime 3D animation for Visualizer
     v.animation()
-    cv2.destroyAllWindows()
 
+    #Close all open windows after animation ends
+    cv2.destroyAllWindows()
 
 #Main entrance point
 if __name__ == '__main__':

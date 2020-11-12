@@ -107,7 +107,7 @@ class TemporalModel(TemporalModelBase):
         self.causal_shift = [ (filter_widths[0]) // 2 if causal else 0 ]
         next_dilation = filter_widths[0]
         for i in range(1, len(filter_widths)):
-            self.pad.append((filter_widths[i] - 1)*next_dilation // 2)
+            self.pad.append((filter_widths[i] - 1) * next_dilation // 2)
             self.causal_shift.append((filter_widths[i]//2 * next_dilation) if causal else 0)
             
             layers_conv.append(nn.Conv1d(channels, channels,
