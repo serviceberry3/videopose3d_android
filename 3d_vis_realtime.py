@@ -53,7 +53,7 @@ class Visualizer(object):
         self.w.opts['distance'] = 45.0       #Distance of camera from center
         self.w.opts['fov'] = 60              #Horizontal field of view in degrees
         self.w.opts['elevation'] = 10       #Camera's angle of elevation in degrees
-        self.w.opts['azimuth'] = 90         #Camera's azimuthal angle in degrees
+        self.w.opts['azimuth'] = 270         #Camera's azimuthal angle in degrees
 
         self.w.setWindowTitle('3D Visualization')
         self.w.setGeometry(450, 700, 980, 700) 
@@ -118,21 +118,22 @@ class Visualizer(object):
         num = item/2
 
         #calculate camera's current azimuthal angle in degrees and store it in the Visualizer item
-        azimuth_value = abs(num%120 + math.pow(-1, int((num/120))) * 120) % 120
-        self.w.opts['azimuth'] = azimuth_value
+        #azimuth_value = abs(num%120 + math.pow(-1, int((num/120))) * 120) % 120
+
+        #self.w.opts['azimuth'] = azimuth_value
 
         #Log which frame this is
-        print("Frame #", item)
+        #print("Frame #", item)
 
 
         #read in a frame from the VideoCapture (webcam)
         _, frame = self.cap.read() #ignore the other returned value
+        frame = cv2.rotate(frame, cv2.ROTATE_90_COUNTERCLOCKWISE)
 
         #update every other frame
         if item % 2 != 1:
             #resize the incoming image frame
             frame, W, H = resize_img(frame)
-
 
             #joint2D = interface2D(frame, model2D)
             joint2D = estimate_pose(frame)
@@ -150,7 +151,6 @@ class Visualizer(object):
                 self.kpt2Ds.append(joint2D)
                 self.kpt2Ds.pop(0)
 
-
             else:
                 self.kpt2Ds.append(joint2D)
                 self.kpt2Ds.pop(0)
@@ -164,19 +164,22 @@ class Visualizer(object):
             #get the 3d coordinates
             pos = joint3D[-1] #(17, 3)
 
+
             for j, j_parent in enumerate(common.skeleton_parents):
                 if j_parent == -1:
                     continue
+
+
                 x = np.array([pos[j, 0], pos[j_parent, 0]]) * 10
                 y = np.array([pos[j, 1], pos[j_parent, 1]]) * 10
                 z = np.array([pos[j, 2], pos[j_parent, 2]]) * 10 - 10
+
+
                 pos_total = np.vstack([x,y,z]).transpose()
 
 
-                self.set_plotdata(
-                    name=j, points=pos_total,
-                    color=pg.glColor((j, 10)),
-                    width=6)
+                self.set_plotdata(name=j, points=pos_total, color=pg.glColor((j, 10)), width=6)
+
 
             #Save
             if item_num < 10:
@@ -192,20 +195,23 @@ class Visualizer(object):
                 name = str(item_num)
 
 
-
             #save the 3D image
             im3Dname = 'VideoSave/' + '3D_'+ name + '.png'
+
             d = self.w.renderToArray((img2D.shape[1], img2D.shape[0])) #(W, H)
-            print('Save 3D image: ', im3Dname)
+
+            #print('Save 3D image: ', im3Dname)
+
             pg.makeQImage(d).save(im3Dname)
 
             #save the 2D image
             im2Dname = 'VideoSave/' + '2D_'+ name + '.png'
-            print('Save 2D image: ', im2Dname)
+
+            #print('Save 2D image: ', im2Dname)
+
             cv2.imwrite(im2Dname, img2D)
 
             item_num += 1
-
 
         else:
             item += 1

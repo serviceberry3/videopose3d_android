@@ -37,7 +37,7 @@ def resize_img(frame, max_length=640):
             W_resize = int(W * max_length / H)
 
         #resize the incoming image appropriately
-        frame = cv2.resize(frame, (W_resize, H_resize), interpolation=cv2.INTER_AREA)
+        frame = cv2.resize(frame, (W_resize, H_resize), interpolation = cv2.INTER_AREA)
         
         return frame, W_resize, H_resize
 
