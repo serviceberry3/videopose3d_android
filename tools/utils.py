@@ -74,11 +74,14 @@ def draw_2Dimg(img, kpts, display=None):
     for item in kpts:
         score = item[-1]
 
-        #convert joint coords to ints
-        x, y = int(item[0]), int(item[1])
+        #draw the joint only if score is confident enough
+        if score > 0.3:
 
-        #draw this joint as blue dot, radius 1, thickness 5
-        cv2.circle(im, (x, y), 1, (255, 5, 0), 4)
+            #convert joint coords to ints
+            x, y = int(item[0]), int(item[1])
+
+            #draw this joint as blue dot, radius 1, thickness 5
+            cv2.circle(im, (x, y), 1, (255, 5, 0), 4)
 
     #draw joint connections as lines
     for pair in joint_pairs:
@@ -104,6 +107,8 @@ def draw_3Dimg(pos, image, display=None, kpt2D=None):
     #for 3D projection
     from mpl_toolkits.mplot3d import Axes3D
     from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
+
+
     fig = plt.figure(figsize=(12,6))
     canvas = FigureCanvas(fig)
 
@@ -142,9 +147,11 @@ def draw_3Dimg(pos, image, display=None, kpt2D=None):
                                     [pos[j, 2], pos[j_parent, 2]], zdir='z', c=col)
     width, height = fig.get_size_inches() * fig.get_dpi()
 
-    # draw the canvas, cache the renderer
+    #Draw the canvas and cache the renderer
     canvas.draw()       
     image = np.fromstring(canvas.tostring_rgb(), dtype='uint8').reshape(int(height), int(width), 3)
+
+
     if display:
         cv2.imshow('im', image)
         cv2.waitKey(3)
@@ -197,11 +204,17 @@ def interface(model_pos, keypoints, W, H):
         keypoints = np.array(keypoints)
 
     from common.camera import normalize_screen_coordinates_new, camera_to_world, normalize_screen_coordinates
-    #  keypoints = normalize_screen_coordinates_new(keypoints[..., :2], w=W, h=H)
+
+    #keypoints = normalize_screen_coordinates_new(keypoints[..., :2], w=W, h=H)
     keypoints = normalize_screen_coordinates(keypoints[..., :2], w=1000, h=1002)
+
+    #make a copy of the passed 2D keypoints
     input_keypoints = keypoints.copy()
-    # test_time_augmentation True
+
+    #test_time_augmentation True
     from common.generators import UnchunkedGenerator
+
+
     gen = UnchunkedGenerator(None, None, [input_keypoints], pad=common.pad, causal_shift=common.causal_shift, augment=True, kps_left=common.kps_left, kps_right=common.kps_right, joints_left=common.joints_left, joints_right=common.joints_right)
     prediction = evaluate(gen, model_pos, return_predictions=True)
     prediction = camera_to_world(prediction, R=common.rot, t=0)

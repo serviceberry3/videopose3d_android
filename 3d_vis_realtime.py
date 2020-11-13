@@ -53,7 +53,7 @@ class Visualizer(object):
         self.w.opts['distance'] = 45.0       #Distance of camera from center
         self.w.opts['fov'] = 60              #Horizontal field of view in degrees
         self.w.opts['elevation'] = 10       #Camera's angle of elevation in degrees
-        self.w.opts['azimuth'] = 270         #Camera's azimuthal angle in degrees
+        self.w.opts['azimuth'] = 90         #Camera's azimuthal angle in degrees
 
         self.w.setWindowTitle('3D Visualization')
         self.w.setGeometry(450, 700, 980, 700) 
@@ -135,24 +135,19 @@ class Visualizer(object):
             #resize the incoming image frame
             frame, W, H = resize_img(frame)
 
-            #joint2D = interface2D(frame, model2D)
-            joint2D = estimate_pose(frame)
+            #run Posenet inference to find the 2D joint keypoints
+            joints_2D = estimate_pose(frame)
 
             #open pop-up and draw the keypoints found
-            img2D  = draw_2Dimg(frame, joint2D, 1)
+            img2D  = draw_2Dimg(frame, joints_2D, 1)
 
             #if this is the first frame
             if item == 0:
                 for _ in range(30):
-                    self.kpt2Ds.append(joint2D)
-
-
-            elif item < 30:
-                self.kpt2Ds.append(joint2D)
-                self.kpt2Ds.pop(0)
+                    self.kpt2Ds.append(joints_2D)
 
             else:
-                self.kpt2Ds.append(joint2D)
+                self.kpt2Ds.append(joints_2D)
                 self.kpt2Ds.pop(0)
 
             #increment the frame counter
@@ -181,35 +176,8 @@ class Visualizer(object):
                 self.set_plotdata(name=j, points=pos_total, color=pg.glColor((j, 10)), width=6)
 
 
-            #Save
-            if item_num < 10:
-                name = '000' + str(item_num)
-
-            elif item_num < 100:
-                name = '00' + str(item_num)
-
-            elif item_num < 1000:
-                name = '0' + str(item_num)
-
-            else:
-                name = str(item_num)
-
-
-            #save the 3D image
-            im3Dname = 'VideoSave/' + '3D_'+ name + '.png'
-
             d = self.w.renderToArray((img2D.shape[1], img2D.shape[0])) #(W, H)
 
-            #print('Save 3D image: ', im3Dname)
-
-            pg.makeQImage(d).save(im3Dname)
-
-            #save the 2D image
-            im2Dname = 'VideoSave/' + '2D_'+ name + '.png'
-
-            #print('Save 2D image: ', im2Dname)
-
-            cv2.imwrite(im2Dname, img2D)
 
             item_num += 1
 

@@ -9,6 +9,11 @@ import numpy
 import sys
 
 
+def sigmoid(x):
+    return 1.0 / (1.0 + np.exp(-x))
+
+
+
 # The model output consist of 2 parts:
 # - heatmaps (9,9,17) - corresponds to the probability of appearance of 
 # each keypoint in the particular part of the image (9,9)(without applying sigmoid 
@@ -30,7 +35,7 @@ import sys
 #    if max probability > threshold:
 #      if the position lies inside the shape of resized image:
 #        set the flag for visualisation to True
-def parse_output(heatmap_data, offset_data, threshold):
+def parse_output(heatmap_data, offset_data):
     '''
     Input:
     heatmap_data - heatmaps for an image. 3D array
@@ -89,8 +94,8 @@ def parse_output(heatmap_data, offset_data, threshold):
         if max_prob > threshold:
             #if we know that this keypoint was found INSIDE the image
             if pose_kps[i, 0] < 257 and pose_kps[i, 1] < 257:
-                #add an adjusted score of "1" to third slot of this keypoint
-                pose_kps[i, 2] = 1.0
+                #add an adjusted score to third slot of this keypoint
+                pose_kps[i, 2] = sigmoid(max_prob)
 
     #return array of keypoints
     return pose_kps
@@ -208,8 +213,8 @@ def estimate_pose(image_src):
     #multiply all values in show by 255 and convert to ints
     show = np.array(show * 255, np.uint8)'''
 
-    #get the keypoints, confidence threshold pretty generous
-    kps = parse_output(heatmaps, offsets, 0.3)
+    #get the actual keypoints w/coordinates and scores by parsing through the output tensors
+    kps = parse_output(heatmaps, offsets)
 
     #cv.imshow("Original image", image_src.copy())
 
