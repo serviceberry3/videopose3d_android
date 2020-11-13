@@ -79,7 +79,7 @@ def project_to_2d(X, camera_params):
 
 def project_to_2d_linear(X, camera_params):
     """
-    使用linear parameters is a little difference for use linear and no-linear parameters
+    Linear parameters is a little difference for use linear and no-linear parameters
     Project 3D points to 2D using only linear parameters (focal length and principal point).
 
     Arguments:

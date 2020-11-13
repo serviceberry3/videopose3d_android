@@ -46,8 +46,12 @@ class TemporalModel(nn.Module):
         self.relu = nn.ReLU(inplace=True)
         
         self.pad = [ filter_widths[0] // 2 ]
+
+
         self.expand_bn = nn.BatchNorm1d(channels, momentum=0.1)
         self.shrink = nn.Conv1d(channels, num_joints_out*3, 1)
+
+        #self.conv1 = nn.Conv1d(num_joints_in*in_features, channels, filter_widths[0], bias=False)
 
 
         self.expand_conv = nn.Conv1d(num_joints_in*in_features, channels, filter_widths[0], bias=False)
@@ -63,19 +67,40 @@ class TemporalModel(nn.Module):
             self.pad.append((filter_widths[i] - 1) * next_dilation // 2)
             self.causal_shift.append((filter_widths[i]//2 * next_dilation) if causal else 0)
             
-
+            
             layers_conv.append(nn.Conv1d(channels, channels, filter_widths[i] if not dense else (2*self.pad[-1] + 1), dilation=next_dilation if not dense else 1, bias=False))
             layers_bn.append(nn.BatchNorm1d(channels, momentum=0.1))
 
-
             layers_conv.append(nn.Conv1d(channels, channels, 1, dilation=1, bias=False))
             layers_bn.append(nn.BatchNorm1d(channels, momentum=0.1))
+
+            '''
+            setattr(self, "conv" + str(i), nn.Conv1d(channels, channels, filter_widths[i] if not dense else (2*self.pad[-1] + 1), dilation=next_dilation if not dense else 1, bias=False))
+            setattr(self, "bn" + str(i), nn.BatchNorm1d(channels, momentum=0.1))
+
+            setattr(self, "conv" + str(i) + "2", nn.Conv1d(channels, channels, 1, dilation=1, bias=False))
+            setattr(self, "bn" + str(i) + "2", nn.BatchNorm1d(channels, momentum=0.1))'''
+            
+
+            '''
+            layers_conv["conv" + str(i)] = nn.Conv1d(channels, channels, filter_widths[i] if not dense else (2*self.pad[-1] + 1), dilation=next_dilation if not dense else 1, bias=False)
+            layers_bn ["bn" + str(i)] = nn.BatchNorm1d(channels, momentum=0.1)
+
+
+            layers_conv["conv" + str(i) + "2"] = nn.Conv1d(channels, channels, 1, dilation=1, bias=False)
+            layers_bn["conv" + str(i) + "2"] = nn.BatchNorm1d(channels, momentum=0.1)'''
             
 
             next_dilation *= filter_widths[i]
-            
+
+
         
-        self.layers_conv = nn.ModuleList(layers_conv)
+        self.conv_layer_names = list(layers_conv)
+        self.bn_layer_names = list(layers_bn)
+
+        
+        self.layers_conv = nn.ModuleList(layers_conv)    #ALT IS MODULEDICT
+        print(layers_conv)
         self.layers_bn = nn.ModuleList(layers_bn)
         
 
@@ -107,16 +132,48 @@ class TemporalModel(nn.Module):
         return frames
 
 
+    #run forward feed on network
     def _forward_blocks(self, x):
         x = self.drop(self.relu(self.expand_bn(self.expand_conv(x))))
-        
+
+
         for i in range(len(self.pad) - 1):
+
             pad = self.pad[i+1]
             shift = self.causal_shift[i+1]
+
             res = x[:, :, pad + shift : x.shape[2] - pad + shift]
+
+
+            '''
+            for j, mod in enumerate(self.layers_conv):
+                if (j == 2*i):
+                    desired_conv_mod_1.append(list(mod))
+                elif (j == 2*i + 1):
+                    desired_conv_mod_2.append(list(mod))
+            for j, mod in enumerate(self.layers_bn):
+                if (j == 2*i):
+                    desired_bn_mod_1.append(list(mod))
+                elif (j == 2*i + 1):
+                    desired_bn_mod_2.append(list(mod))'''
+
+                
+            for j, mod_conv in enumerate(self.layers_conv):
+                for k, mod_bn in enumerate(self.layers_bn):
+                    if j==2*i and k==2*i:
+                        x = self.drop(self.relu(mod_bn(mod_conv(x))))
+                    elif j==2*i +1 and k==2*i + 1:
+                        x = res + self.drop(self.relu(mod_bn(mod_conv(x))))
+
+
+
+            #x = self.drop(self.relu(self.layers_bn[2*i](self.layers_conv[2*i](x))))
+            #x = res + self.drop(self.relu(self.layers_bn[2*i + 1](self.layers_conv[2*i + 1](x))))
+
+
             
-            x = self.drop(self.relu(self.layers_bn[2*i](self.layers_conv[2*i](x))))
-            x = res + self.drop(self.relu(self.layers_bn[2*i + 1](self.layers_conv[2*i + 1](x))))
+            #x = self.drop(self.relu(self.__getattr__("bn" + str(i+1) ) (self.__getattr__("conv" + str(i+1) )(x))))
+            #x = res + self.drop(self.relu(self.__getattr__("bn" + str(i+1) + "2" ) (self.__getattr__("conv" + str(i+1) + "2")(x))))
         
         x = self.shrink(x)
         return x
@@ -140,18 +197,39 @@ class TemporalModel(nn.Module):
 
 
 def get_model():
-    m = TemporalModel(17, 2, 17, [3, 3, 3, 3, 3], causal=False, dropout=False)
+    m = TemporalModel(17, 2, 17, [3, 3, 3, 3, 3], causal=False, dropout=0.25)
     m.eval()
     return m
 
 #fuse some layers to save mem
-def get_layers_to_fuse():
-    return [['conv', 'bn', 'relu']]
+def get_layers_to_fuse(model):
+    '''
+    layers = model.conv_layer_names + model.bn_layer_names #model.bn_layer_names
+    print(layers)'''
+
+    layers=[]
+    #generate keys
+    for i in range(4):
+        layers.append("conv" + str(i+1))
+        layers.append("bn" + str(i+1))
+        layers.append('relu')
+
+        layers.append("conv" + str(i+1) + "2")
+
+        layers.append("bn" + str(i+1) + "2")
+
+        layers.append('relu')
+
+    print([layers])
+    return [layers]
+
+
 
 #format model for use on mobile
 def trace_model():
     m = get_model()
-    layers = get_layers_to_fuse()
+    layers = get_layers_to_fuse(m)
+
     return m, layers
     
 
