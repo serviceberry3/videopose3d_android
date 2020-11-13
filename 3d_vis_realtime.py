@@ -130,14 +130,14 @@ class Visualizer(object):
 
         #update every other frame
         if item % 2 != 1:
-
+            #resize the incoming image frame
             frame, W, H = resize_img(frame)
 
 
             #joint2D = interface2D(frame, model2D)
             joint2D = estimate_pose(frame)
 
-
+            #open pop-up and draw the keypoints found
             img2D  = draw_2Dimg(frame, joint2D, 1)
 
             #if this is the first frame
@@ -195,7 +195,7 @@ class Visualizer(object):
 
             #save the 3D image
             im3Dname = 'VideoSave/' + '3D_'+ name + '.png'
-            d = self.w.renderToArray((img2D.shape[1], img2D.shape[0]))#(W, H)
+            d = self.w.renderToArray((img2D.shape[1], img2D.shape[0])) #(W, H)
             print('Save 3D image: ', im3Dname)
             pg.makeQImage(d).save(im3Dname)
 

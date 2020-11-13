@@ -62,25 +62,43 @@ def rotate_bound(image, angle):
     return cv2.warpAffine(image, M, (nW, nH))
 
 
-def draw_2Dimg(img, kpt, display=None):
-    # kpts : (17, 3)  3-->(x, y, score)
+def draw_2Dimg(img, kpts, display=None):
+    # kpt is 17x3 array containing the 2D joint keypoints
     im = img.copy()
+
+    #get list of joint connections
     joint_pairs = common.joint_pairs
-    for item in kpt:
+
+
+    #iterate over all joints in kpt
+    for item in kpts:
         score = item[-1]
-        if score > 0.1:
-            x, y = int(item[0]), int(item[1])
-            cv2.circle(im, (x, y), 1, (255, 5, 0), 5)
+
+        #convert joint coords to ints
+        x, y = int(item[0]), int(item[1])
+
+        #draw this joint as blue dot, radius 1, thickness 5
+        cv2.circle(im, (x, y), 1, (255, 5, 0), 4)
+
+    #draw joint connections as lines
     for pair in joint_pairs:
         j, j_parent = pair
-        pt1 = (int(kpt[j][0]), int(kpt[j][1]))
-        pt2 = (int(kpt[j_parent][0]), int(kpt[j_parent][1]))
-        cv2.line(im, pt1, pt2, (0,255,0), 2)
 
+        pt1 = (int(kpts[j][0]), int(kpts[j][1]))
+
+        pt2 = (int(kpts[j_parent][0]), int(kpts[j_parent][1]))
+
+
+        #cv2.line(im, pt1, pt2, (0,255,0), 2)
+
+    #dispaly the labeled image as pop-up
     if display:
-        cv2.imshow('im', im)
-        cv2.waitKey(3)
+        cv2.imshow('2D drawing', im)
+
+
     return im
+
+
 
 def draw_3Dimg(pos, image, display=None, kpt2D=None):
     #for 3D projection
