@@ -187,15 +187,20 @@ def videoInfo(VideoName):
 def videopose_model_load():
     # load trained model
     from common.model import TemporalModel
+
     chk_filename = main_path + '/../checkpoint/cpn-pt-243.bin'
+
     checkpoint = torch.load(chk_filename, map_location=lambda storage, loc: storage)
-    model_pos = TemporalModel(17, 2, 17,filter_widths=[3,3,3,3,3] , causal=False, dropout=False, channels=1024, dense=False)
+
+    model_pos = TemporalModel(17, 2, 17, filter_widths=[3,3,3,3,3] , causal=False, dropout=False, channels=1024, dense=False)
 
     #bypass CUDA for now to run only on CPU
     #model_pos = model_pos.cuda()
 
     model_pos.load_state_dict(checkpoint['model_pos'])
+
     receptive_field = model_pos.receptive_field()
+
     return model_pos
 
 def interface(model_pos, keypoints, W, H):
@@ -215,7 +220,10 @@ def interface(model_pos, keypoints, W, H):
     from common.generators import UnchunkedGenerator
 
 
-    gen = UnchunkedGenerator(None, None, [input_keypoints], pad=common.pad, causal_shift=common.causal_shift, augment=True, kps_left=common.kps_left, kps_right=common.kps_right, joints_left=common.joints_left, joints_right=common.joints_right)
+    gen = UnchunkedGenerator(None, None, [input_keypoints], pad=common.pad, causal_shift=common.causal_shift, 
+        augment=True, kps_left=common.kps_left, kps_right=common.kps_right, joints_left=common.joints_left, joints_right=common.joints_right)
+
+
     prediction = evaluate(gen, model_pos, return_predictions=True)
     prediction = camera_to_world(prediction, R=common.rot, t=0)
     prediction[:, :, 2] -= np.min(prediction[:, :, 2])

@@ -90,12 +90,10 @@ def parse_output(heatmap_data, offset_data):
         pose_kps[i, 1] = remap_pos[0] + offset_data[max_val_pos[0], max_val_pos[1], i]
 
 
-        #if we're confident enough that this joint was found
-        if max_prob > threshold:
-            #if we know that this keypoint was found INSIDE the image
-            if pose_kps[i, 0] < 257 and pose_kps[i, 1] < 257:
-                #add an adjusted score to third slot of this keypoint
-                pose_kps[i, 2] = sigmoid(max_prob)
+        #if we know that this keypoint was found INSIDE the image
+        if pose_kps[i, 0] < 257 and pose_kps[i, 1] < 257:
+            #add an adjusted score to third slot of this keypoint
+            pose_kps[i, 2] = sigmoid(max_prob)
 
     #return array of keypoints
     return pose_kps
