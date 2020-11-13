@@ -5,10 +5,10 @@
 5    android:versionName="1.0" >
 6
 7    <uses-sdk
-7-->/home/nodog/Documents/AndroidStudioProjects/posenet_tracker/posenet/src/main/AndroidManifest.xml:4:3-15
+7-->/home/nodog/docs/asp/VideoPose3D/posenet/src/main/AndroidManifest.xml:4:3-15
 8        android:minSdkVersion="21"
-8-->/home/nodog/Documents/AndroidStudioProjects/posenet_tracker/posenet/src/main/AndroidManifest.xml:4:3-15
-9        android:targetSdkVersion="23" />
-9-->/home/nodog/Documents/AndroidStudioProjects/posenet_tracker/posenet/src/main/AndroidManifest.xml:4:3-15
+8-->/home/nodog/docs/asp/VideoPose3D/posenet/src/main/AndroidManifest.xml:4:3-15
+9        android:targetSdkVersion="30" />
+9-->/home/nodog/docs/asp/VideoPose3D/posenet/src/main/AndroidManifest.xml:4:3-15
 10
 11</manifest>

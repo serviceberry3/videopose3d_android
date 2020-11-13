@@ -34,7 +34,7 @@ public class MainActivity extends AppCompatActivity {
         try {
 
             //Load model: loading serialized torchscript module from packaged into app android asset model.pt,
-            module = Module.load(assetFilePath(this, "cpn-pt-243.bin"));
+            module = Module.load(assetFilePath(this, "processed_mod.pt"));
         }
 
         catch (IOException e) {
