@@ -3,7 +3,8 @@ There's some demand for an Android app that implements Facebook Research's recen
 Note: using Detectron2 on Android would be too slow, so I'll try using TfLite Posenet to get the 2D human keypoints and then feeding them into Facebook's 3D model.  
 
 UPDATE(11/12/20): I've swapped out Detectron for Posenet and got the visualization working on my computer. You need to download the Posenet lite model: 
-https://storage.googleapis.com/download.tensorflow.org/models/tflite/posenet_mobilenet_v1_100_257x257_multi_kpt_stripped.tflite. 
+https://storage.googleapis.com/download.tensorflow.org/models/tflite/posenet_mobilenet_v1_100_257x257_multi_kpt_stripped.tflite. Place it in /home/[user]/Downloads/  
+
 From root directory of my repo, you can run  
 python3 infer_video_posenet.py --output-dir data --image-ext mp4 (relative path to videos folder). Then just run  
 
@@ -11,7 +12,7 @@ python3 run_3d_vis.py -d custom -k myvideos -arc 3,3,3,3,3 -c checkpoint --evalu
 
 to do post-processing and render the visualization into desired output location.  
 
-I also have live 3D visualization working: as long as you have the VideoPose3D cpn-pt-243.bin file downloaded and placed into [path to root of this repo]/../checkpoint, just (from the root) run: 
+I also have live 3D visualization working: as long as you have the VideoPose3D cpn-pt-243.bin file downloaded and placed into [path to root of this repo]/../checkpoint/, just (from the root) run: 
 
  python3 3d_vis_realtime.py  
  
