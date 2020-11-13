@@ -112,14 +112,14 @@ def draw_3Dimg(pos, image, display=None, kpt2D=None):
     fig = plt.figure(figsize=(12,6))
     canvas = FigureCanvas(fig)
 
-    # 2D
+    #2D
     fig.add_subplot(121)
     if isinstance(kpt2D, np.ndarray):
         plt.imshow(draw_2Dimg(image, kpt2D))
     else:
         plt.imshow(image)
 
-    # 3D
+    #3D
     ax = fig.add_subplot(122, projection='3d')
     radius = 1.7
     ax.view_init(elev=15., azim=70.)

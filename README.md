@@ -2,6 +2,8 @@ There's some demand for an Android app that implements Facebook Research's recen
 
 Note: using Detectron2 on Android would be too slow, so I'll try using TfLite Posenet to get the 2D human keypoints and then feeding them into Facebook's 3D model.  
 
+UPDATE(11/13/20): I've loaded the model into the Android app as a Torch Script. Fun visualization to come. I think each pair of Conv1D and BatchNorm1D layers can be fused together as well to improve runtime and memory usage.
+
 UPDATE(11/12/20): I've swapped out Detectron for Posenet and got the visualization working on my computer. You need to download the Posenet lite model: 
 https://storage.googleapis.com/download.tensorflow.org/models/tflite/posenet_mobilenet_v1_100_257x257_multi_kpt_stripped.tflite. Place it in /home/[user]/Downloads/  
 
