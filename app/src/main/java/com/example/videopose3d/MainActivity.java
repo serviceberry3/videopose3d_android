@@ -7,6 +7,7 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.Window;
 import android.widget.ImageView;
 import android.widget.TextView;
 
@@ -30,13 +31,18 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        requestWindowFeature(Window.FEATURE_NO_TITLE);//will hide the title.
+        getSupportActionBar().hide(); //hide the title bar.
+
+
         setContentView(R.layout.activity_main);
+
+
 
         Bitmap bitmap = null;
         Module module = null;
 
         try {
-
             //Load model: loading serialized torchscript module from packaged into app android asset model.pt,
             module = Module.load(assetFilePath(this, "processed_mod.pt"));
         }
@@ -62,7 +68,6 @@ public class MainActivity extends AppCompatActivity {
 
         //Get output tensor content as java array of floats
         final float[] scores = outputTensor.getDataAsFloatArray(); //returns java array of floats with scores for every image net class
-
          */
     }
 
