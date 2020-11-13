@@ -32,9 +32,13 @@ from tools.utils import draw_3Dimg, draw_2Dimg, videoInfo, resize_img, common
 from posenet import estimate_pose
 
 common = common()
+
+#initialize some global vars
 item = 0
 item_num = 0
-pos_init = np.zeros(shape=(17,3))
+
+#initialize pos_init to 17x3 zeros matrix
+pos_init = np.zeros((17,3))
 
 
 class Visualizer(object):
@@ -51,7 +55,7 @@ class Visualizer(object):
         self.w.opts['elevation'] = 10       #Camera's angle of elevation in degrees
         self.w.opts['azimuth'] = 90         #Camera's azimuthal angle in degrees
 
-        self.w.setWindowTitle('pyqtgraph example: GLLinePlotItem')
+        self.w.setWindowTitle('3D Visualization')
         self.w.setGeometry(450, 700, 980, 700) 
         self.w.show()
 
@@ -96,6 +100,8 @@ class Visualizer(object):
 
     def start(self):
         if (sys.flags.interactive != 1) or not hasattr(QtCore, 'PYQT_VERSION'):
+            print("Starting qtgraph")
+            #start up the qtgraph gui
             QtGui.QApplication.instance().exec_()
 
 
@@ -104,19 +110,25 @@ class Visualizer(object):
 
     
     def update(self):
+        #these globals get updated on every callback
         global item
         global item_num
-        num = item/2
-        azimuth_value = abs(num%120 + math.pow(-1, int((num/120))) * 120) % 120
 
+        #set num to half of item
+        num = item/2
+
+        #calculate camera's current azimuthal angle in degrees and store it in the Visualizer item
+        azimuth_value = abs(num%120 + math.pow(-1, int((num/120))) * 120) % 120
         self.w.opts['azimuth'] = azimuth_value
 
-        print(item, '  ')
-
-        #read in a frame from the VideoCapture
-        _, frame = self.cap.read()
+        #Log which frame this is
+        print("Frame #", item)
 
 
+        #read in a frame from the VideoCapture (webcam)
+        _, frame = self.cap.read() #ignore the other returned value
+
+        #update every other frame
         if item % 2 != 1:
 
             frame, W, H = resize_img(frame)
@@ -128,23 +140,28 @@ class Visualizer(object):
 
             img2D  = draw_2Dimg(frame, joint2D, 1)
 
-
+            #if this is the first frame
             if item == 0:
                 for _ in range(30):
                     self.kpt2Ds.append(joint2D)
 
+
             elif item < 30:
                 self.kpt2Ds.append(joint2D)
                 self.kpt2Ds.pop(0)
+
+
             else:
                 self.kpt2Ds.append(joint2D)
                 self.kpt2Ds.pop(0)
 
+            #increment the frame counter
             item += 1
 
             #run 2D-3D inference using VideoPose3D model
-            joint3D = interface3D(model3D, np.array(self.kpt2Ds), W, H)
+            joint3D = interface3d(model3D, np.array(self.kpt2Ds), W, H)
 
+            #get the 3d coordinates
             pos = joint3D[-1] #(17, 3)
 
             for j, j_parent in enumerate(common.skeleton_parents):
@@ -173,16 +190,23 @@ class Visualizer(object):
 
             else:
                 name = str(item_num)
+
+
+
+            #save the 3D image
             im3Dname = 'VideoSave/' + '3D_'+ name + '.png'
             d = self.w.renderToArray((img2D.shape[1], img2D.shape[0]))#(W, H)
             print('Save 3D image: ', im3Dname)
             pg.makeQImage(d).save(im3Dname)
 
+            #save the 2D image
             im2Dname = 'VideoSave/' + '2D_'+ name + '.png'
             print('Save 2D image: ', im2Dname)
             cv2.imwrite(im2Dname, img2D)
 
             item_num += 1
+
+
         else:
             item += 1
 
@@ -210,6 +234,7 @@ def main():
 
     #Close all open windows after animation ends
     cv2.destroyAllWindows()
+
 
 #Main entrance point
 if __name__ == '__main__':
