@@ -1,0 +1,2 @@
+org/tensorflow/lite/examples/noah/lib/BuildConfig.java
+ org.tensorflow.lite.examples.noah.lib.BuildConfig

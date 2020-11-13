@@ -10,6 +10,9 @@ import android.util.Log;
 import android.widget.ImageView;
 import android.widget.TextView;
 
+import org.opencv.android.BaseLoaderCallback;
+import org.opencv.android.LoaderCallbackInterface;
+import org.opencv.android.OpenCVLoader;
 import org.pytorch.Module;
 import org.pytorch.Tensor;
 import org.pytorch.torchvision.TensorImageUtils;
@@ -22,6 +25,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 
 public class MainActivity extends AppCompatActivity {
+    public final String TAG = "MainAct";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -42,6 +46,7 @@ public class MainActivity extends AppCompatActivity {
             finish();
         }
 
+        Log.i("DBUG", "Read in VideoPose3D successfully");
 
         /*
         //Preparing input tensor from the image (in torchvision format)
@@ -59,6 +64,38 @@ public class MainActivity extends AppCompatActivity {
         final float[] scores = outputTensor.getDataAsFloatArray(); //returns java array of floats with scores for every image net class
 
          */
+    }
+
+    //use this OpenCV loader callback to instantiate Mat objects, otherwise we'll get an error about Mat not being found
+    public BaseLoaderCallback mLoaderCallback = new BaseLoaderCallback(this) {
+        @Override
+        public void onManagerConnected(int status) {
+            Log.i(TAG, "BaseLoaderCallback called!");
+
+            if (status == LoaderCallbackInterface.SUCCESS) {//instantiate everything we need from OpenCV
+                //everything succeeded
+                Log.i(TAG, "OpenCV loaded successfully, everything created");
+            }
+
+            else {
+                super.onManagerConnected(status);
+            }
+        }
+    };
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        if (!OpenCVLoader.initDebug()) {
+            Log.d("OpenCV", "Internal OpenCV library not found. Using OpenCV Manager for initialization");
+            OpenCVLoader.initAsync(OpenCVLoader.OPENCV_VERSION_3_0_0, this,
+                    mLoaderCallback);
+        }
+
+        else {
+            Log.d("OpenCV", "OpenCV library found inside package. Using it!");
+            mLoaderCallback.onManagerConnected(LoaderCallbackInterface.SUCCESS);
+        }
     }
 
 
