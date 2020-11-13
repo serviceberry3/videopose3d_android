@@ -1,0 +1,14 @@
+1<?xml version="1.0" encoding="utf-8"?>
+2<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+3    package="org.tensorflow.lite.examples.noah.lib"
+4    android:versionCode="1"
+5    android:versionName="1.0" >
+6
+7    <uses-sdk
+7-->/home/nodog/Documents/AndroidStudioProjects/posenet_tracker/posenet/src/main/AndroidManifest.xml:4:3-15
+8        android:minSdkVersion="21"
+8-->/home/nodog/Documents/AndroidStudioProjects/posenet_tracker/posenet/src/main/AndroidManifest.xml:4:3-15
+9        android:targetSdkVersion="23" />
+9-->/home/nodog/Documents/AndroidStudioProjects/posenet_tracker/posenet/src/main/AndroidManifest.xml:4:3-15
+10
+11</manifest>

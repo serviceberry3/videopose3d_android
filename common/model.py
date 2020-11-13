@@ -50,8 +50,6 @@ class TemporalModel(nn.Module):
         self.shrink = nn.Conv1d(channels, num_joints_out*3, 1)
 
 
-
-
         self.expand_conv = nn.Conv1d(num_joints_in*in_features, channels, filter_widths[0], bias=False)
         
         layers_conv = []
@@ -157,7 +155,7 @@ def trace_model():
     return m, layers
     
 
-    
+
 class TemporalModelOptimized1f(TemporalModel):
     """
     3D pose estimation model optimized for single-frame batching, i.e.
