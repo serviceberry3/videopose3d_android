@@ -71,6 +71,7 @@ public abstract class CameraBridgeViewBase extends SurfaceView implements Surfac
         Log.d(TAG, "Attr count: " + Integer.valueOf(count));
 
         TypedArray styledAttrs = getContext().obtainStyledAttributes(attrs, R.styleable.CameraBridgeViewBase);
+
         if (styledAttrs.getBoolean(R.styleable.CameraBridgeViewBase_show_fps, false))
             enableFpsMeter();
 
@@ -429,7 +430,7 @@ public abstract class CameraBridgeViewBase extends SurfaceView implements Surfac
 
                 if (mFpsMeter != null) {
                     mFpsMeter.measure();
-                    mFpsMeter.draw(canvas, 20, 30);
+                    mFpsMeter.draw(canvas, 30, 70); //CHANGED
                 }
                 getHolder().unlockCanvasAndPost(canvas);
             }

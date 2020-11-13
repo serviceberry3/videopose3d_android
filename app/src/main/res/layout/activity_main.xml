@@ -4,17 +4,22 @@
     android:layout_height="match_parent"
     android:gravity="center_horizontal">
 
+
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:gravity="center"
-        android:orientation="horizontal" >
+        android:orientation="horizontal"
+        android:layout_alignParentTop="true"
+        android:layout_alignParentLeft="true"
+        android:layout_alignParentStart="true">
 
         <RelativeLayout
             android:layout_width="0dp"
             android:layout_height="match_parent"
             android:layout_weight="1"
-            android:layout_marginTop="20dp">
+            android:layout_marginTop="0dp"
+            android:background="@android:color/black">
 
             <ImageView
                 android:id="@+id/img_dealed"
@@ -22,23 +27,46 @@
                 android:layout_height="match_parent"
                 android:scaleType="fitXY" />
 
+            <!--This is the camera image preview box in top left-->
             <org.opencv.android.JavaCameraView
-                android:id="@+id/tutorial1_activity_java_surface_view"
-                android:layout_width="200dip"
-                android:layout_height="200dip"
+                android:id="@+id/java_cam_view"
+                android:layout_width="270dip"
+                android:layout_height="250dip"
                 android:layout_alignParentLeft="true"
                 android:layout_alignParentTop="true"
-                android:layout_marginLeft="15dip"
-                android:layout_marginTop="15dip"
+                android:layout_marginLeft="5dip"
+                android:layout_marginTop="0dip"
                 android:visibility="gone"
                 opencv:camera_id="any"
-                opencv:show_fps="false" />
+                opencv:show_fps="true" /> <!--show the fps of camera capture-->
+
+
+            <LinearLayout
+                android:orientation="vertical"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="265dp"
+                android:layout_marginLeft="20dp"
+                android:background="@android:color/black"
+                android:layout_marginStart="20dp">
+
+            </LinearLayout>
+
+            <LinearLayout
+                android:orientation="vertical"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginLeft="280dp"
+                android:layout_marginTop="30dp"
+                android:layout_marginStart="280dp">
+
+            </LinearLayout>
         </RelativeLayout>
 
         <View
             android:layout_width="0.5dip"
             android:layout_height="match_parent"
-            android:background="#CCCCCC" />
+            android:background="@android:color/black"/>
 
         <LinearLayout
             android:id="@+id/surfaceLinear"
@@ -47,17 +75,9 @@
             android:layout_weight="1"
             android:gravity="center_vertical"
             android:orientation="vertical"
-            android:layout_marginTop="30dp">
+            android:layout_marginTop="0dp"
+            android:background="@android:color/black">
 
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:id="@+id/dataTextView" />
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:id="@+id/distTextView"
-                android:text=""/>
 
         </LinearLayout>
     </LinearLayout>

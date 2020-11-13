@@ -5,15 +5,26 @@ import androidx.appcompat.app.AppCompatActivity;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.hardware.SensorEventListener;
+import android.location.LocationListener;
+import android.opengl.GLSurfaceView;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.MenuItem;
+import android.view.SurfaceView;
+import android.view.View;
 import android.view.Window;
+import android.view.WindowManager;
+import android.widget.Button;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import org.opencv.android.BaseLoaderCallback;
+import org.opencv.android.CameraBridgeViewBase;
 import org.opencv.android.LoaderCallbackInterface;
 import org.opencv.android.OpenCVLoader;
+import org.opencv.core.Mat;
 import org.pytorch.Module;
 import org.pytorch.Tensor;
 import org.pytorch.torchvision.TensorImageUtils;
@@ -25,18 +36,70 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 
-public class MainActivity extends AppCompatActivity {
+import javax.microedition.khronos.egl.EGLConfig;
+import javax.microedition.khronos.opengles.GL10;
+
+public class MainActivity extends AppCompatActivity implements GLSurfaceView.Renderer, CameraBridgeViewBase.CvCameraViewListener2, View.OnClickListener {
     public final String TAG = "MainAct";
+
+    ImageView imgDealed;
+
+    LinearLayout linear;
+
+    String vocPath, calibrationPath;
+
+    private static final int INIT_FINISHED = 0x00010001;
+
+    private CameraBridgeViewBase mOpenCvCameraView;
+    private boolean mIsJavaCamera = true;
+    private MenuItem mItemSwitchCamera = null;
+
+    private final int CONTEXT_CLIENT_VERSION = 3;
+
+    //OpenGL SurfaceView
+    private GLSurfaceView mGLSurfaceView;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         requestWindowFeature(Window.FEATURE_NO_TITLE);//will hide the title.
+        getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN, WindowManager.LayoutParams.FLAG_FULLSCREEN);
         getSupportActionBar().hide(); //hide the title bar.
 
-
+        //set the view to main act view
         setContentView(R.layout.activity_main);
 
+
+
+        imgDealed = (ImageView) findViewById(R.id.img_dealed);
+
+        //mIsJavaCamera is bool describing whether or not we're using JavaCameraView. Which we always are, it seems.
+
+        mOpenCvCameraView = (CameraBridgeViewBase) findViewById(R.id.java_cam_view);
+
+
+        //check the the view was found by ID and all is well
+        if (mOpenCvCameraView == null) {
+            Log.e(TAG, "mOpenCvCameraView came up null");
+        }
+        else {
+            Log.d(TAG, "mOpenCvCameraView non-null, OK");
+        }
+
+        //make our OpenCvCameraView visible and set the listener for the camera
+        mOpenCvCameraView.setVisibility(SurfaceView.VISIBLE);
+        mOpenCvCameraView.setCvCameraViewListener(this);
+
+        //instantiate new GLSurfaceView
+        mGLSurfaceView = new GLSurfaceView(this);
+        linear = (LinearLayout) findViewById(R.id.surfaceLinear);
+
+        //mGLSurfaceView.setEGLContextClientVersion(CONTEXT_CLIENT_VERSION);
+
+        //set the renderer for the GLSurfaceView
+        mGLSurfaceView.setRenderer(this);
+
+        linear.addView(mGLSurfaceView, new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.MATCH_PARENT));
 
 
         Bitmap bitmap = null;
@@ -80,6 +143,7 @@ public class MainActivity extends AppCompatActivity {
             if (status == LoaderCallbackInterface.SUCCESS) {//instantiate everything we need from OpenCV
                 //everything succeeded
                 Log.i(TAG, "OpenCV loaded successfully, everything created");
+                mOpenCvCameraView.enableView();
             }
 
             else {
@@ -89,18 +153,38 @@ public class MainActivity extends AppCompatActivity {
     };
 
     @Override
+    protected void onStart() {
+        super.onStart();
+    }
+
+    @Override
     protected void onResume() {
         super.onResume();
         if (!OpenCVLoader.initDebug()) {
             Log.d("OpenCV", "Internal OpenCV library not found. Using OpenCV Manager for initialization");
-            OpenCVLoader.initAsync(OpenCVLoader.OPENCV_VERSION_3_0_0, this,
-                    mLoaderCallback);
+            OpenCVLoader.initAsync(OpenCVLoader.OPENCV_VERSION_3_0_0, this, mLoaderCallback);
         }
 
         else {
             Log.d("OpenCV", "OpenCV library found inside package. Using it!");
             mLoaderCallback.onManagerConnected(LoaderCallbackInterface.SUCCESS);
         }
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        mGLSurfaceView.onPause();
+
+        if (mOpenCvCameraView != null)
+            mOpenCvCameraView.disableView();
+
+    }
+
+    public void onDestroy() {
+        super.onDestroy();
+        if (mOpenCvCameraView != null)
+            mOpenCvCameraView.disableView();
     }
 
 
@@ -133,5 +217,44 @@ public class MainActivity extends AppCompatActivity {
             }
             return file.getAbsolutePath();
         }
+    }
+
+    @Override
+    public void onSurfaceCreated(GL10 gl10, EGLConfig eglConfig) {
+
+    }
+
+    @Override
+    public void onSurfaceChanged(GL10 gl10, int i, int i1) {
+
+    }
+
+    @Override
+    public void onDrawFrame(GL10 gl10) {
+
+    }
+
+    @Override
+    public void onClick(View view) {
+
+    }
+
+    @Override
+    public void onCameraViewStarted(int width, int height) {
+
+    }
+
+    @Override
+    public void onCameraViewStopped() {
+
+    }
+
+    @Override
+    public Mat onCameraFrame(CameraBridgeViewBase.CvCameraViewFrame inputFrame) {
+        //get the frame as a mat in RGBA format
+        Mat im = inputFrame.rgba();
+
+        //whatever gets returned here is what's displayed
+        return im;
     }
 }
