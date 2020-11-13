@@ -28,6 +28,9 @@ from tools.utils import interface as interface3d
 from tools.utils import draw_3Dimg, draw_2Dimg, videoInfo, resize_img, common
 
 
+#Import posenet 2D joint finder
+from posenet import estimate_pose
+
 common = common()
 item = 0
 item_num = 0
@@ -99,7 +102,7 @@ class Visualizer(object):
     def set_plotdata(self, name, points, color, width):
         self.traces[name].setData(pos=points, color=color, width=width)
 
-
+    
     def update(self):
         global item
         global item_num
@@ -119,17 +122,16 @@ class Visualizer(object):
             frame, W, H = resize_img(frame)
 
 
-            joint2D = interface2D(frame, model2D)
-            print
+            #joint2D = interface2D(frame, model2D)
+            joint2D = estimate_pose(frame)
 
 
             img2D  = draw_2Dimg(frame, joint2D, 1)
 
-            
+
             if item == 0:
                 for _ in range(30):
                     self.kpt2Ds.append(joint2D)
-
 
             elif item < 30:
                 self.kpt2Ds.append(joint2D)
@@ -186,9 +188,16 @@ class Visualizer(object):
 
     #Start up the live realtime 3D animation
     def animation(self):
+        #instantiate a QTimer object to keep track of time during animation
         timer = QtCore.QTimer()
+
+        #connect the "callback" fxn for timer timeout (to update drawing)
         timer.timeout.connect(self.update)
+
+        #start the timer
         timer.start(1)
+
+        #start the QApplication
         self.start()
 
 
@@ -196,12 +205,11 @@ def main():
     #Instantiate a Visualizer object for the input video file
     v = Visualizer()
 
-    '''
     #Start up realtime 3D animation for Visualizer
     v.animation()
 
     #Close all open windows after animation ends
-    cv2.destroyAllWindows()'''
+    cv2.destroyAllWindows()
 
 #Main entrance point
 if __name__ == '__main__':
