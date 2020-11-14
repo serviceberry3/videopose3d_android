@@ -87,7 +87,7 @@ class Posenet(val context: Context, val filename: String = "posenet_model.tflite
   private fun getInterpreter(): Interpreter {
     //get the Posenet Interpreter instance
     if (interpreter != null) {
-      Log.i("Test", "Reusing interpreter")
+      //Log.i("Test", "Reusing interpreter")
       return interpreter!!
     }
 
@@ -155,7 +155,7 @@ class Posenet(val context: Context, val filename: String = "posenet_model.tflite
       inputBuffer.putFloat(((pixelValue and 0xFF) - mean) / std)
     }
 
-    Log.i("Test", String.format("InputBuffer has length %d", batchSize * bytesPerChannel * bitmap.height * bitmap.width * inputChannels))
+    //Log.i("Test", String.format("InputBuffer has length %d", batchSize * bytesPerChannel * bitmap.height * bitmap.width * inputChannels))
 
     return inputBuffer
   }
@@ -263,7 +263,7 @@ class Posenet(val context: Context, val filename: String = "posenet_model.tflite
         }
       }
 
-      Log.i("Test", String.format("Maxrow finished as %d", maxRow));
+      //Log.i("Test", String.format("Maxrow finished as %d", maxRow));
 
       keypointPositions[keypoint] = Pair(maxRow, maxCol)
     }

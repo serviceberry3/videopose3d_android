@@ -24,17 +24,28 @@ import org.opencv.android.BaseLoaderCallback;
 import org.opencv.android.CameraBridgeViewBase;
 import org.opencv.android.LoaderCallbackInterface;
 import org.opencv.android.OpenCVLoader;
+import org.opencv.core.Core;
 import org.opencv.core.Mat;
+import org.opencv.core.Point;
+import org.opencv.core.Scalar;
+import org.opencv.core.Size;
+import org.opencv.imgcodecs.Imgcodecs;
+import org.opencv.imgproc.Imgproc;
 import org.pytorch.Module;
 import org.pytorch.Tensor;
 import org.pytorch.torchvision.TensorImageUtils;
 import org.pytorch.IValue;
+import org.tensorflow.lite.examples.noah.lib.Device;
+import org.tensorflow.lite.examples.noah.lib.KeyPoint;
+import org.tensorflow.lite.examples.noah.lib.Person;
+import org.tensorflow.lite.examples.noah.lib.Posenet;
 
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.Objects;
 
 import javax.microedition.khronos.egl.EGLConfig;
 import javax.microedition.khronos.opengles.GL10;
@@ -47,6 +58,8 @@ public class MainActivity extends AppCompatActivity implements GLSurfaceView.Ren
     LinearLayout linear;
 
     String vocPath, calibrationPath;
+
+    Posenet posenet;
 
     private static final int INIT_FINISHED = 0x00010001;
 
@@ -69,7 +82,7 @@ public class MainActivity extends AppCompatActivity implements GLSurfaceView.Ren
         //set the view to main act view
         setContentView(R.layout.activity_main);
 
-
+        posenet = new Posenet(this, "posenet_model.tflite", Device.GPU);
 
         imgDealed = (ImageView) findViewById(R.id.img_dealed);
 
@@ -239,6 +252,7 @@ public class MainActivity extends AppCompatActivity implements GLSurfaceView.Ren
 
     }
 
+
     @Override
     public void onCameraViewStarted(int width, int height) {
 
@@ -253,8 +267,103 @@ public class MainActivity extends AppCompatActivity implements GLSurfaceView.Ren
     public Mat onCameraFrame(CameraBridgeViewBase.CvCameraViewFrame inputFrame) {
         //get the frame as a mat in RGBA format
         Mat im = inputFrame.rgba();
+        Mat im_resized = new Mat();
+
+        Imgproc.resize(im, im_resized, new Size(257, 257));
+
+        Log.i(TAG, String.format("Image is %d x %d", im.width(), im.height()));
+
+        Bitmap bitmap = Bitmap.createBitmap(257, 257, Bitmap.Config.ARGB_8888);
+
+        org.opencv.android.Utils.matToBitmap(im_resized, bitmap);
+
+        Log.i(TAG, String.format("Bitmap is %d x %d", bitmap.getWidth(), bitmap.getHeight()));
+
+        float htRatio = 480f/257f;
+        float wdRatio = 720f/257f;
+
+        //Bitmap croppedBitmap = cropBitmap(bitmap);
+
+        //Created scaled version of bitmap for model input (scales it to 257 x 257)
+        //Bitmap scaledBitmap = Bitmap.createScaledBitmap(croppedBitmap, 257, 257, true);
+
+        //Perform inference
+        Person person = posenet.estimateSinglePose(bitmap);
+
+
+        for (KeyPoint kp : person.getKeyPoints()) {
+
+            if (kp.getScore() > 0.8) {
+                float x = kp.getPosition().getX() * wdRatio;
+                float y = kp.getPosition().getY() * htRatio;
+
+                //draw this point on the preview
+                Imgproc.circle(im, new Point((int) x, (int) y), 2, new Scalar(0, 0, 255), 2);
+            }
+        }
 
         //whatever gets returned here is what's displayed
         return im;
     }
+
+    /*
+    public String type2str(int type) {
+        String r;
+
+         depth = type & CV_MAT_DEPTH_MASK;
+        uchar chans = 1 + (type >> CV_CN_SHIFT);
+
+        switch ( depth ) {
+            case CV_8U:  r = "8U"; break;
+            case CV_8S:  r = "8S"; break;
+            case CV_16U: r = "16U"; break;
+            case CV_16S: r = "16S"; break;
+            case CV_32S: r = "32S"; break;
+            case CV_32F: r = "32F"; break;
+            case CV_64F: r = "64F"; break;
+            default:     r = "User"; break;
+        }
+
+        r += "C";
+        r += (chans+'0');
+
+        return r;
+    }*/
+
+    /** Crop Bitmap to maintain aspect ratio of model input. */
+    private Bitmap cropBitmap(Bitmap bitmap) {
+        float bitmapRatio = (float)bitmap.getHeight() / bitmap.getWidth();
+
+        float modelInputRatio = 1.0f;
+
+        //first set new edited bitmap equal to the passed one
+        Bitmap croppedBitmap = bitmap;
+
+        //Acceptable difference between the modelInputRatio and bitmapRatio to skip cropping.
+        double maxDifference = 1e-5;
+
+        //Checks if the bitmap has similar aspect ratio as the required model input.
+        if (Math.abs(modelInputRatio - bitmapRatio) < maxDifference) {
+            return croppedBitmap;
+        }
+
+        else if (modelInputRatio < bitmapRatio) {
+            //New image is taller so we are height constrained.
+            float cropHeight = bitmap.getHeight() - ((float)bitmap.getWidth() / modelInputRatio);
+
+            croppedBitmap = Bitmap.createBitmap(bitmap, 0, (int)(cropHeight / 2), bitmap.getWidth(), (int)(bitmap.getHeight() - cropHeight));
+        }
+
+        else {
+            //Log.i(TAG, "Cropping...");
+
+            float cropWidth = bitmap.getWidth() - ((float)bitmap.getHeight() * modelInputRatio); //=720-480 = 240
+
+
+            croppedBitmap = Bitmap.createBitmap(bitmap, (int)(cropWidth / 2), 0, (int)(bitmap.getWidth() - cropWidth), bitmap.getHeight());
+        }
+
+        return croppedBitmap;
+    }
+
 }
