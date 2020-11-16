@@ -22,11 +22,19 @@ extern "C" {
     }
 
     JNIEXPORT void JNICALL Java_com_example_jni_NdkHelper_glesRender(JNIEnv* env, jclass clazz) {
+        //clear out the OpenGL buffers
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+        //set the matrix mode
+        glMatrixMode(GL_MODELVIEW);
+
+        //make sure we're starting out with the identity matrix
+        glLoadIdentity();
+
         //clear out what was there previously
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        //scale by x2 along x, y, and z axes
-        glScalef(2.0f, 2.0f, 2.0f);
+
 
         LOG("Clearing color to black...");
         //glClearColor(1.0f, 1.0f, 1.0f, 1.0f); // white
@@ -43,7 +51,7 @@ extern "C" {
         glEnableClientState (GL_VERTEX_ARRAY);
 
 
-        LOG("mCameraPose came up non-empty, creating rotation and translation matrices");
+        LOG("Creating rotation and translation matrices");
 
         //instantiate a 3x3 camera-to-world rotation matrix
         cv::Mat Rwc(3,3,CV_32F);
@@ -72,22 +80,22 @@ extern "C" {
         const float h = w * 0.75f;
         const float z = w * 0.60f;
 
-        //rotation and translation
+        //rotation and translation mats
 
         cv::Mat mCameraPose(3, 4, CV_32F);
 
         mCameraPose.at<float>(0, 0) = 0.6;
         mCameraPose.at<float>(0, 1) = -0.8;
-        mCameraPose.at<float>(0, 2) = 0;
-        mCameraPose.at<float>(0, 3) = 0;
+        mCameraPose.at<float>(0, 2) = 1;
+        mCameraPose.at<float>(0, 3) = 1;
         mCameraPose.at<float>(1, 0) = 0.8;
         mCameraPose.at<float>(1, 1) = 0.6;
-        mCameraPose.at<float>(1, 2) = 0;
-        mCameraPose.at<float>(1, 3) = 0;
-        mCameraPose.at<float>(2, 0) = 0;
-        mCameraPose.at<float>(2, 1) = 0;
+        mCameraPose.at<float>(1, 2) = 1;
+        mCameraPose.at<float>(1, 3) = 1;
+        mCameraPose.at<float>(2, 0) = 1;
+        mCameraPose.at<float>(2, 1) = 1;
         mCameraPose.at<float>(2, 2) = 1;
-        mCameraPose.at<float>(2, 3) = 0;
+        mCameraPose.at<float>(2, 3) = 1;
 
 
         //rotation matrix will be transpose of first 3x3 of Tcw
@@ -111,7 +119,6 @@ extern "C" {
         viewPos = Rwc * viewPos + twc;
 
 
-
         //fill the lookat matrix with preset values
         lookAtMat.at<float>(0,0) = sVec.at<float>(0);
         lookAtMat.at<float>(1,0) = sVec.at<float>(1);
@@ -130,15 +137,20 @@ extern "C" {
         lookAtMat.at<float>(2,3) = 0.0;
         lookAtMat.at<float>(3,3) = 1.0;
 
-        glMultMatrixf(lookAtMat.ptr<GLfloat>(0));
-        glTranslatef(-viewPos.at<float>(0),-viewPos.at<float>(1),-viewPos.at<float>(2));
+        /*glMultMatrixf(lookAtMat.ptr<GLfloat>(0));
+        glTranslatef(-viewPos.at<float>(0),-viewPos.at<float>(1),-viewPos.at<float>(2));*/
+
+
+
         //gluLookAt(viewPos.at<float>(0),viewPos.at<float>(1),viewPos.at<float>(2),twc.at<float>(0),twc.at<float>(1),twc.at<float>(2),0.0,1.0,0.0);
 
         //glPushMatrix pushes current matrix stack down by one, duplicating current matrix. After a glPushMatrix call, the matrix on top
         //of the stack is identical to the one below it.
 
         //(Initially, each of the stacks contains one matrix, an identity matrix.)
-        glPushMatrix();
+        //glPushMatrix();
+
+        //START OPERATING ON NEW MATRIX
 
         //multiplies current matrix with the one specified (param), and replaces the current matrix with the product
         //Current matrix is determined by current matrix mode (see glMatrixMode). It is either projection matrix, modelview matrix,
@@ -156,6 +168,11 @@ extern "C" {
                                   -h, z, 0, 0, 0, -w, h, z, w, h, z, w, -h, z, -w, h, z, -w, -h, z,
                                   -w, h, z, w, h, z, -w, -h, z, w, -h, z, };
 
+        GLfloat triangleArray[] = {-0.5f, -0.25f, 0,
+                                   0.5f, -0.25f, 0,
+                                   0.0f,  0.559016994f, 0
+        };
+
         //specifies location and data format of an array of vertex coordinates to use when rendering.
         glVertexPointer(3, GL_FLOAT, 0, vertexArray); //3 coords/vertex, all floats, 0 byte stride from one vertex to next, loc at vertexArray
 
@@ -163,7 +180,7 @@ extern "C" {
         glDrawArrays(GL_LINES, 0, 16);
 
         //glPopMatrix pops the current matrix stack, removing current mat and replacing it with the one below it on the stack.
-        glPopMatrix();
+        //glPopMatrix();
 
         //Different GL implementations buffer commands in several different locations, including network buffers and graphics accelerator itself.
         //glFlush empties all of these buffers, causing all issued commands to be executed as quickly as they are accepted by actual rendering
@@ -177,7 +194,6 @@ extern "C" {
         //glDisableClientState (GL_VERTEX_ARRAY);
         //glDisable (GL_COLOR_MATERIAL);
     }
-
 }
 
 

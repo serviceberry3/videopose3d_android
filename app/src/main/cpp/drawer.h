@@ -1,7 +1,3 @@
-//
-// Created by nodog on 11/16/20.
-//
-
 #ifndef VIDEOPOSE3D_DRAWER_H
 #define VIDEOPOSE3D_DRAWER_H
 
@@ -19,11 +15,6 @@
 
 JavaVM* jvm;
 
-/*
- * Class:     orb_slam2_android_nativefunc_OrbNdkHelper
- * Method:    initSystemWithParameters
- * Signature: (Ljava/lang/String;Ljava/lang/String;)V
- */
 #ifdef __cplusplus
 extern "C" {
 #endif
