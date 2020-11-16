@@ -3,6 +3,8 @@
 # your build.
 cmake_minimum_required(VERSION 3.4.1)
 
+set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -Wl,--exclude-libs,libippicv.a -Wl,--exclude-libs,libippiw.a")
+
 # Specifies a library name, specifies whether the library is STATIC or
 # SHARED, and provides relative paths to the source code. You can
 # define multiple libraries by adding multiple add_library() commands,
@@ -29,6 +31,8 @@ find_library( # Sets the name of the path variable.
         # you want CMake to locate.
         log)
 
+
+
 # Specifies libraries CMake should link to your target library. You
 # can link multiple libraries, such as libraries you define in this
 # build script, prebuilt third-party libraries, or system libraries.
@@ -39,3 +43,9 @@ target_link_libraries( # Specifies the target library.
         # Links the target library to the log library
         # included in the NDK.
         ${log-lib})
+
+set(OpenCV_DIR "../openCVLibrary341/src/sdk/native/jni")
+find_package(OpenCV REQUIRED java)
+message(STATUS "OpenCV libraries: ${OpenCV_LIBS}")
+
+target_link_libraries(drawer ${OpenCV_LIBS})

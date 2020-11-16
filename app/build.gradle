@@ -21,6 +21,7 @@ android {
                 cppFlags "-frtti -fexceptions", '-fsigned-char', "-std=c++11"
                 abiFilters 'arm64-v8a', 'armeabi-v7a', 'x86', 'x86_64'
                 cFlags '-O3', '-fsigned-char', '-std=c11'
+                cppFlags "-std=c++11"
             }
         }
 
@@ -52,7 +53,6 @@ android {
 }
 
 dependencies {
-
     implementation 'androidx.appcompat:appcompat:1.2.0'
     implementation 'com.google.android.material:material:1.1.0'
     implementation 'androidx.constraintlayout:constraintlayout:2.0.2'

@@ -253,7 +253,7 @@ public class MainActivity extends AppCompatActivity implements GLSurfaceView.Ren
 
     @Override
     public void onDrawFrame(GL10 gl10) {
-
+        NdkHelper.glesRender();
     }
 
     @Override

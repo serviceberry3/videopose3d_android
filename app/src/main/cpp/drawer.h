@@ -7,7 +7,15 @@
 
 #include <jni.h>
 #include <GLES/gl.h>
+#include <GLES/glext.h>
 #include <android/asset_manager_jni.h>
+#include <android/log.h>
+#include <opencv2/opencv.hpp>
+
+#define LOG_TAG "ORB_SLAM_SYSTEM_MAPDRAWER"
+
+#define LOG(...) __android_log_print(ANDROID_LOG_ERROR,LOG_TAG, __VA_ARGS__)
+
 
 JavaVM* jvm;
 
