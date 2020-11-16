@@ -14,6 +14,19 @@ android {
         versionName "1.0"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+
+        externalNativeBuild {
+            cmake {
+                arguments '-DANDROID_TOOLCHAIN=clang', '-DANDROID_PLATFORM=android-16', '-DANDROID_STL=c++_static'
+                cppFlags "-frtti -fexceptions", '-fsigned-char', "-std=c++11"
+                abiFilters 'arm64-v8a', 'armeabi-v7a', 'x86', 'x86_64'
+                cFlags '-O3', '-fsigned-char', '-std=c11'
+            }
+        }
+
+        ndk {
+            abiFilters 'armeabi-v7a', 'arm64-v8a', 'x86', 'x86_64'
+        }
     }
 
     buildTypes {
@@ -22,6 +35,16 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
+
+    externalNativeBuild {
+        cmake {
+            path "CMakeLists.txt"
+            version = "3.10.2"
+        }
+    }
+
+    ndkVersion '21.3.6528147'
+
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_1_8
         targetCompatibility JavaVersion.VERSION_1_8
@@ -41,3 +64,5 @@ dependencies {
     implementation 'org.pytorch:pytorch_android:1.7.0'
     implementation 'org.pytorch:pytorch_android_torchvision:1.7.0'
 }
+
+

@@ -72,6 +72,11 @@ public class MainActivity extends AppCompatActivity implements GLSurfaceView.Ren
     //OpenGL SurfaceView
     private GLSurfaceView mGLSurfaceView;
 
+    //load up native C code
+    static {
+        System.loadLibrary("drawer");
+    }
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
