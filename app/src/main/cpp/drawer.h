@@ -4,9 +4,12 @@
 #include <jni.h>
 #include <GLES/gl.h>
 #include <GLES/glext.h>
+#include <GLES/glplatform.h>
 #include <android/asset_manager_jni.h>
 #include <android/log.h>
 #include <opencv2/opencv.hpp>
+#include <cmath>
+//#include "/home/nodog/Downloads/glues-1.3/glues/source/glues.h"
 
 #define LOG_TAG "ORB_SLAM_SYSTEM_MAPDRAWER"
 

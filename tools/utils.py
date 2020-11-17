@@ -161,6 +161,8 @@ def draw_3Dimg(pos, image, display=None, kpt2D=None):
 
 def evaluate(test_generator, model_pos, action=None, return_predictions=False):
     joints_left, joints_right = list([4, 5, 6, 11, 12, 13]), list([1, 2, 3, 14, 15, 16])
+
+    
     with torch.no_grad():
         model_pos.eval()
         N = 0
