@@ -162,21 +162,29 @@ def draw_3Dimg(pos, image, display=None, kpt2D=None):
 def evaluate(test_generator, model_pos, action=None, return_predictions=False):
     joints_left, joints_right = list([4, 5, 6, 11, 12, 13]), list([1, 2, 3, 14, 15, 16])
 
-    
+
     with torch.no_grad():
         model_pos.eval()
         N = 0
+
+
         for _, batch, batch_2d in test_generator.next_epoch():
             inputs_2d = torch.from_numpy(batch_2d.astype('float32'))
             if torch.cuda.is_available():
                 inputs_2d = inputs_2d.cuda()
-            # Positional model
+
+
+            #Run the positional model
             predicted_3d_pos = model_pos(inputs_2d)
+
+
             if test_generator.augment_enabled():
                 # Undo flipping and take average with non-flipped version
                 predicted_3d_pos[1, :, :, 0] *= -1
                 predicted_3d_pos[1, :, joints_left + joints_right] = predicted_3d_pos[1, :, joints_right + joints_left]
                 predicted_3d_pos = torch.mean(predicted_3d_pos, dim=0, keepdim=True)
+
+
             if return_predictions:
                 return predicted_3d_pos.squeeze(0).cpu().numpy()
 

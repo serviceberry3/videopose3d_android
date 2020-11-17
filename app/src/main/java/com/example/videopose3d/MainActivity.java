@@ -210,6 +210,52 @@ public class MainActivity extends AppCompatActivity implements GLSurfaceView.Ren
             mOpenCvCameraView.disableView();
     }
 
+    /*
+    def interface(model_pos, keypoints, W, H):
+            # input (N, 17, 2) return (N, 17, 3)
+
+
+    from common.camera import normalize_screen_coordinates_new, camera_to_world, normalize_screen_coordinates
+
+    #keypoints = normalize_screen_coordinates_new(keypoints[..., :2], w=W, h=H)
+    keypoints = normalize_screen_coordinates(keypoints[..., :2], w=1000, h=1002)
+
+    #make a copy of the passed 2D keypoints
+            input_keypoints = keypoints.copy()
+
+
+
+           gen = UnchunkedGenerator(None, None, [input_keypoints], pad=common.pad, causal_shift=common.causal_shift,
+            augment=True, kps_left=common.kps_left, kps_right=common.kps_right, joints_left=common.joints_left, joints_right=common.joints_right)
+
+
+    prediction = evaluate(gen, model_pos, return_predictions=True)
+    prediction = camera_to_world(prediction, R=common.rot, t=0)
+    prediction[:, :, 2] -= np.min(prediction[:, :, 2])
+            return prediction*/
+
+
+
+
+    //input (N, 17, 2) return (N, 17, 3)
+    public float[] interface3d(Module mod, float[][] kpts, int width, int height) {
+        //do some correction of array format of kpts
+
+        //normalize coordinates
+
+
+        float[][] keypoints = Camera.normalize_screen_coordinates(keypoints, 1000, 1002);
+
+        UnchunkedGenerator gen = new UnchunkedGenerator(input_keypoints, Common.pad, Common.causal_shift, true,
+                Common.kps_left, Common.kps_right, Common.joints_left, Common.joints_right);
+
+
+    }
+
+    public float[][] evaluate(UnchunkedGenerator gen, Module mod, boolean return_predictions) {
+
+    }
+
 
     /**
      * Copies specified asset to the file in /files app directory and returns this file absolute path.
