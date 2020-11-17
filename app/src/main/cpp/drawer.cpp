@@ -306,12 +306,12 @@ void drawGrids() {
     //set up the camera
 
     //Position the eye (camera) in front of the origin
-    float eyeX = 0.5f;
+    float eyeX = 0.0f;
     float eyeY = 0.0f;
-    float eyeZ = 5.0f;
+    float eyeZ = 3.3f;
 
     //We are looking forward toward the distance (position that the camera is looking at)
-    float lookX = -0.5f;
+    float lookX = 0.0f;
     float lookY = 0.0f;
     float lookZ = 1.0f;
 
