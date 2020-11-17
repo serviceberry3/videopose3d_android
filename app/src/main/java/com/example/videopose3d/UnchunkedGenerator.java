@@ -63,7 +63,7 @@ public class UnchunkedGenerator {
         return ret;
     }
 
-    public float[][][][] concat(float[][][][] a1, float[][][][] a2, int axis) {
+    public float[][][][] concat4d(float[][][][] a1, float[][][][] a2, int axis) {
         float[][][][] ret = new float[2][][][];
 
         ret[0] = a1[0];
@@ -81,7 +81,21 @@ public class UnchunkedGenerator {
         return ret;
     }
 
-    public float[][] next_epoch() {
+    public int[] concat1d(int[] a1, int[] a2, int axis) {
+        int[] ret = new int[a1.length + a2.length];
+
+        for (int i = 0; i < ret.length; i++) {
+            if (i < a1.length)
+                ret[i] = a1[i];
+            else
+                ret[i] = a2[i - a1.length];
+        }
+
+        return ret;
+    }
+
+
+    public float[][][][] next_epoch() {
         float[][][] padded2dKpts = pad_edges(poses_2d, 121, 121);
 
         float[][][][] newPadded2dKpts = new float[1][][][];
@@ -92,51 +106,31 @@ public class UnchunkedGenerator {
 
         if (augment) {
             //append flipped version
-            newPadded2dKpts = concat(newPadded2dKpts, newPadded2dKpts, 0);
+            newPadded2dKpts = concat4d(newPadded2dKpts, newPadded2dKpts, 0);
+            //newPadded2dKpts now contains 2 identical 3d arrays that are 272x17x2
 
             //flip all keypoints in second one
             for (int i = 0; i < newPadded2dKpts[1].length; i++) { //for 272
                 for (int j = 0; j < newPadded2dKpts[1][i].length; j++) { //for 17
-                    newPadded2dKpts[1][i][j][0] *= -1;
-                    newPadded2dKpts[1][i][j][1] *= -1;
+                    newPadded2dKpts[1][i][j][0] *= -1; //x coord
+                    newPadded2dKpts[1][i][j][1] *= -1; //y coord
                 }
             }
 
+            int[] leftThenRt = concat1d(kps_left, kps_right, 0);
+            int[] rtThenLeft = concat1d(kps_right, kps_left, 0);
 
-            
+            //do a lil switcheroo of the joints
 
-            newPadded2dKpts[1]
+            for (int i = 0; i < newPadded2dKpts[1].length; i++) { //for 272
+                for (int j = 0; j < leftThenRt.length; j++) {
+                    newPadded2dKpts[1][i][leftThenRt[j]] = newPadded2dKpts[1][i][rtThenLeft[j]];
+                }
+            }
+
         }
 
 
-        return ret;
+        return newPadded2dKpts;
     }
-
 }
-
-
-
-
-
-
-/*
-        def next_epoch(self):
-            for seq_cam, seq_3d, seq_2d in zip_longest(self.cameras, self.poses_3d, self.poses_2d):
-
-
-            batch_2d = np.expand_dims(np.pad(seq_2d, ((self.pad + self.causal_shift, self.pad - self.causal_shift), (0, 0), (0, 0)), 'edge'), axis=0)
-
-            if self.augment:
-
-
-                # Append flipped version
-                batch_2d = np.concatenate((batch_2d, batch_2d), axis=0)
-
-
-
-                batch_2d[1, :, :, 0] *= -1
-
-
-                batch_2d[1, :, self.kps_left + self.kps_right] = batch_2d[1, :, self.kps_right + self.kps_left]
-
-            yield batch_2d*/

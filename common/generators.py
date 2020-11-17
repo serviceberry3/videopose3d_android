@@ -227,12 +227,13 @@ class UnchunkedGenerator:
 
             #print("BEFORE")
 
-            print("BEFORE", seq_2d.shape)
+            
+            #print("BEFORE", seq_2d.shape)
 
             #this pads the array of frames with 121 of the same frame on both beginning and end of array, then adds a dimension on outer
             batch_2d = np.expand_dims(np.pad(seq_2d, ((self.pad + self.causal_shift, self.pad - self.causal_shift), (0, 0), (0, 0)), 'edge'), axis=0)
 
-            print("AFTER", batch_2d.shape)
+            #print("AFTER", batch_2d.shape)
 
             #print("Testing")
 
@@ -251,6 +252,9 @@ class UnchunkedGenerator:
 
                 batch_2d = np.concatenate((batch_2d, batch_2d), axis=0)
                 batch_2d[1, :, :, 0] *= -1
+
+                print("SUM", self.kps_left + self.kps_right)
+
                 batch_2d[1, :, self.kps_left + self.kps_right] = batch_2d[1, :, self.kps_right + self.kps_left]
 
             #print("FLIPPED", batch_2d)
