@@ -109,6 +109,7 @@ class Visualizer(object):
         self.traces[name].setData(pos=points, color=color, width=width)
 
     
+    #Run the model on 30 frames at a time
     def update(self):
         #these globals get updated on every callback
         global item

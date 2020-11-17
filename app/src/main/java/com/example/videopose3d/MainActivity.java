@@ -73,6 +73,7 @@ public class MainActivity extends AppCompatActivity implements GLSurfaceView.Ren
 
     //OpenGL SurfaceView
     private GLSurfaceView mGLSurfaceView;
+    private Module module = null;
 
     //load up native C code
     static {
@@ -123,7 +124,7 @@ public class MainActivity extends AppCompatActivity implements GLSurfaceView.Ren
 
 
         Bitmap bitmap = null;
-        Module module = null;
+
 
         try {
             //Load model: loading serialized torchscript module from packaged into app android asset model.pt,
@@ -210,50 +211,56 @@ public class MainActivity extends AppCompatActivity implements GLSurfaceView.Ren
             mOpenCvCameraView.disableView();
     }
 
-    /*
-    def interface(model_pos, keypoints, W, H):
-            # input (N, 17, 2) return (N, 17, 3)
-
-
-    from common.camera import normalize_screen_coordinates_new, camera_to_world, normalize_screen_coordinates
-
-    #keypoints = normalize_screen_coordinates_new(keypoints[..., :2], w=W, h=H)
-    keypoints = normalize_screen_coordinates(keypoints[..., :2], w=1000, h=1002)
-
-    #make a copy of the passed 2D keypoints
-            input_keypoints = keypoints.copy()
-
-
-
-           gen = UnchunkedGenerator(None, None, [input_keypoints], pad=common.pad, causal_shift=common.causal_shift,
-            augment=True, kps_left=common.kps_left, kps_right=common.kps_right, joints_left=common.joints_left, joints_right=common.joints_right)
-
-
-    prediction = evaluate(gen, model_pos, return_predictions=True)
-    prediction = camera_to_world(prediction, R=common.rot, t=0)
-    prediction[:, :, 2] -= np.min(prediction[:, :, 2])
-            return prediction*/
-
-
-
 
     //input (N, 17, 2) return (N, 17, 3)
-    public float[] interface3d(Module mod, float[][] kpts, int width, int height) {
+    public float[][] interface3d(Module mod, float[][] kpts, int width, int height) {
         //do some correction of array format of kpts
 
         //normalize coordinates
+        float[][][] keypoints = Camera.normalize_screen_coordinates(kpts, 1000, 1002);
 
-
-        float[][] keypoints = Camera.normalize_screen_coordinates(keypoints, 1000, 1002);
-
-        UnchunkedGenerator gen = new UnchunkedGenerator(input_keypoints, Common.pad, Common.causal_shift, true,
+        UnchunkedGenerator gen = new UnchunkedGenerator(keypoints, Common.pad, Common.causal_shift, true,
                 Common.kps_left, Common.kps_right, Common.joints_left, Common.joints_right);
 
+        float[][] prediction = evaluate(gen, mod, true);
 
+        prediction = Camera.camera_to_world(prediction, Common.rot, 0);
+
+        //min out prediction
+
+        return prediction;
     }
+
+/*
+
+
+
+
+    for _, batch, batch_2d in test_generator.next_epoch():
+        inputs_2d = torch.from_numpy(batch_2d.astype('float32'))
+
+
+
+        #Run the positional model
+        predicted_3d_pos = model_pos(inputs_2d)
+
+
+        if test_generator.augment_enabled():
+
+
+            # Undo flipping and take average with non-flipped version
+            predicted_3d_pos[1, :, :, 0] *= -1
+            predicted_3d_pos[1, :, joints_left + joints_right] = predicted_3d_pos[1, :, joints_right + joints_left]
+            predicted_3d_pos = torch.mean(predicted_3d_pos, dim=0, keepdim=True)
+
+
+        if return_predictions:
+            return predicted_3d_pos.squeeze(0).cpu().numpy()*/
+
 
     public float[][] evaluate(UnchunkedGenerator gen, Module mod, boolean return_predictions) {
 
+        return null;
     }
 
 

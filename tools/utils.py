@@ -167,9 +167,13 @@ def evaluate(test_generator, model_pos, action=None, return_predictions=False):
         model_pos.eval()
         N = 0
 
+        i = 0
 
         for _, batch, batch_2d in test_generator.next_epoch():
+            #print(i)
             inputs_2d = torch.from_numpy(batch_2d.astype('float32'))
+
+
             if torch.cuda.is_available():
                 inputs_2d = inputs_2d.cuda()
 
@@ -184,6 +188,7 @@ def evaluate(test_generator, model_pos, action=None, return_predictions=False):
                 predicted_3d_pos[1, :, joints_left + joints_right] = predicted_3d_pos[1, :, joints_right + joints_left]
                 predicted_3d_pos = torch.mean(predicted_3d_pos, dim=0, keepdim=True)
 
+            i+=1
 
             if return_predictions:
                 return predicted_3d_pos.squeeze(0).cpu().numpy()
@@ -223,6 +228,8 @@ def interface(model_pos, keypoints, W, H):
     #keypoints = normalize_screen_coordinates_new(keypoints[..., :2], w=W, h=H)
     keypoints = normalize_screen_coordinates(keypoints[..., :2], w=1000, h=1002)
 
+    #print("KEYPOINTS", keypoints)
+
     #make a copy of the passed 2D keypoints
     input_keypoints = keypoints.copy()
 
@@ -234,7 +241,10 @@ def interface(model_pos, keypoints, W, H):
         augment=True, kps_left=common.kps_left, kps_right=common.kps_right, joints_left=common.joints_left, joints_right=common.joints_right)
 
 
+    #run the inference
     prediction = evaluate(gen, model_pos, return_predictions=True)
+
+
     prediction = camera_to_world(prediction, R=common.rot, t=0)
     prediction[:, :, 2] -= np.min(prediction[:, :, 2])
     return prediction

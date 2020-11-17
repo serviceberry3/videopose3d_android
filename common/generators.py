@@ -185,7 +185,7 @@ class UnchunkedGenerator:
     """
     
     def __init__(self, cameras, poses_3d, poses_2d, pad=0, causal_shift=0,
-                 augment=False, kps_left=None, kps_right=None, joints_left=None, joints_right=None):
+                 augment=False, kps_left=None, kps_right=None, joints_left=None, joints_right=None): #pad will be given 121
         assert poses_3d is None or len(poses_3d) == len(poses_2d)
         assert cameras is None or len(cameras) == len(poses_2d)
 
@@ -214,12 +214,29 @@ class UnchunkedGenerator:
         self.augment = augment
     
     def next_epoch(self):
-        for seq_cam, seq_3d, seq_2d in zip_longest(self.cameras, self.poses_3d, self.poses_2d):
+        i = 0
+        for seq_cam, seq_3d, seq_2d in zip_longest(self.cameras, self.poses_3d, self.poses_2d): #should only iterate once
+            #print(i)
+            i+=1
+
+
             batch_cam = None if seq_cam is None else np.expand_dims(seq_cam, axis=0)
             batch_3d = None if seq_3d is None else np.expand_dims(seq_3d, axis=0)
-            batch_2d = np.expand_dims(np.pad(seq_2d,
-                            ((self.pad + self.causal_shift, self.pad - self.causal_shift), (0, 0), (0, 0)),
-                            'edge'), axis=0)
+
+            #print("THIS", self.poses_2d)
+
+            #print("BEFORE")
+
+            print("BEFORE", seq_2d.shape)
+
+            #this pads the array of frames with 121 of the same frame on both beginning and end of array, then adds a dimension on outer
+            batch_2d = np.expand_dims(np.pad(seq_2d, ((self.pad + self.causal_shift, self.pad - self.causal_shift), (0, 0), (0, 0)), 'edge'), axis=0)
+
+            print("AFTER", batch_2d.shape)
+
+            #print("Testing")
+
+
             if self.augment:
                 # Append flipped version
                 if batch_cam is not None:
@@ -235,5 +252,7 @@ class UnchunkedGenerator:
                 batch_2d = np.concatenate((batch_2d, batch_2d), axis=0)
                 batch_2d[1, :, :, 0] *= -1
                 batch_2d[1, :, self.kps_left + self.kps_right] = batch_2d[1, :, self.kps_right + self.kps_left]
+
+            #print("FLIPPED", batch_2d)
 
             yield batch_cam, batch_3d, batch_2d
