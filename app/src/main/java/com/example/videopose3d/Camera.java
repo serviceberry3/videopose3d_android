@@ -1,7 +1,7 @@
 package com.example.videopose3d;
 
 public class Camera {
-    public static float[][][] normalize_screen_coordinates(float[][][] coords, int w, int h) {
+    public static void normalize_screen_coordinates(float[][][] coords, int w, int h) {
         //Normalize so that [0, w] is mapped to [-1, 1], while preserving aspect ratio
 
         for (int i = 0; i < coords.length; i++) {
@@ -16,7 +16,6 @@ public class Camera {
             }
         }
 
-        return coords;
     }
 
     public static float[][] normalize_screen_coordinates_new(float[][] coords, int w, int h) {

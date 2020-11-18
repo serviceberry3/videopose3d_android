@@ -16,6 +16,8 @@ poses_2d -- list of input 2D keypoints, one element for each video
         kps_left and kps_right -- list of left/right 2D keypoints if flipping is enabled
         joints_left and joints_right -- list of left/right 3D joints if flipping is enabled*/
 
+import android.util.Log;
+
 public class UnchunkedGenerator {
     public boolean augment;
     public int[] kps_left;
@@ -96,7 +98,17 @@ public class UnchunkedGenerator {
 
 
     public float[][][][] next_epoch() {
+        Log.i("DBUG", String.format("poses_2d dim 1 is %d", poses_2d.length));
+        Log.i("DBUG", String.format("poses_2d dim 2 is %d", poses_2d[0].length));
+        Log.i("DBUG", String.format("poses_2d dim 3 is %d", poses_2d[0][0].length));
+
+
+
         float[][][] padded2dKpts = pad_edges(poses_2d, 121, 121);
+
+        Log.i("DBUG", String.format("padded2dKpts dim 1 is %d", padded2dKpts.length));
+        Log.i("DBUG", String.format("padded2dKpts dim 2 is %d", padded2dKpts[0].length));
+        Log.i("DBUG", String.format("padded2dKpts dim 3 is %d", padded2dKpts[0][0].length));
 
         float[][][][] newPadded2dKpts = new float[1][][][];
 

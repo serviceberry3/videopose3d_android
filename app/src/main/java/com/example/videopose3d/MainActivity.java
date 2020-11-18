@@ -34,6 +34,7 @@ import org.opencv.core.Size;
 import org.opencv.imgcodecs.Imgcodecs;
 import org.opencv.imgproc.Imgproc;
 import org.pytorch.Module;
+import org.pytorch.PyTorchAndroid;
 import org.pytorch.Tensor;
 import org.pytorch.torchvision.TensorImageUtils;
 import org.pytorch.IValue;
@@ -47,7 +48,11 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.sql.Array;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Objects;
+import java.util.stream.Stream;
 
 import javax.microedition.khronos.egl.EGLConfig;
 import javax.microedition.khronos.opengles.GL10;
@@ -70,10 +75,15 @@ public class MainActivity extends AppCompatActivity implements GLSurfaceView.Ren
     private MenuItem mItemSwitchCamera = null;
 
     private final int CONTEXT_CLIENT_VERSION = 3;
+    private final long[] shape = {2, 272, 17, 2};
 
     //OpenGL SurfaceView
     private GLSurfaceView mGLSurfaceView;
     private Module module = null;
+
+    private int frameNum = 0;
+
+    private float[][][] keypts2d = {};
 
     //load up native C code
     static {
@@ -205,6 +215,7 @@ public class MainActivity extends AppCompatActivity implements GLSurfaceView.Ren
 
     }
 
+
     public void onDestroy() {
         super.onDestroy();
         if (mOpenCvCameraView != null)
@@ -213,13 +224,16 @@ public class MainActivity extends AppCompatActivity implements GLSurfaceView.Ren
 
 
     //input (N, 17, 2) return (N, 17, 3)
-    public float[][] interface3d(Module mod, float[][] kpts, int width, int height) {
+    public float[][] interface3d(Module mod, float[][][] kpts, int width, int height) {
         //do some correction of array format of kpts
 
-        //normalize coordinates
-        float[][][] keypoints = Camera.normalize_screen_coordinates(kpts, 1000, 1002);
+        //float[][][] keypoints = new float[1][][];
+        //keypoints[0] = kpts;
 
-        UnchunkedGenerator gen = new UnchunkedGenerator(keypoints, Common.pad, Common.causal_shift, true,
+        //normalize coordinates
+        Camera.normalize_screen_coordinates(kpts, 1000, 1002);
+
+        UnchunkedGenerator gen = new UnchunkedGenerator(kpts, Common.pad, Common.causal_shift, true,
                 Common.kps_left, Common.kps_right, Common.joints_left, Common.joints_right);
 
         float[][] prediction = evaluate(gen, mod, true);
@@ -231,15 +245,42 @@ public class MainActivity extends AppCompatActivity implements GLSurfaceView.Ren
         return prediction;
     }
 
-/*
 
 
+    public float[] flatten(float[][][][] input, long[] shape) {
+        long needed = 1;
+
+        for (int i = 0; i < shape.length; i++) {
+            needed *= shape[i];
+        }
+
+        Log.i(TAG, String.format("We need %d for ret", needed));
+
+        float[] ret = new float[(int) needed];
+
+        Log.i(TAG, String.format("First dim is %d", input.length));
+        Log.i(TAG, String.format("Second dim is %d", input[0].length));
 
 
+        int head = 0;
+
+        for (int i = 0; i < shape[0]; i++) {
+            for (int j = 0; j < shape[1]; j++) {
+                for (int k = 0; k < shape[2]; k++) {
+                    for (int l = 0; l < shape[3]; l++) {
+                        ret[head++] = input[i][j][k][l];
+                    }
+                }
+            }
+        }
+
+        return ret;
+    }
+
+
+    /*
     for _, batch, batch_2d in test_generator.next_epoch():
         inputs_2d = torch.from_numpy(batch_2d.astype('float32'))
-
-
 
         #Run the positional model
         predicted_3d_pos = model_pos(inputs_2d)
@@ -259,6 +300,20 @@ public class MainActivity extends AppCompatActivity implements GLSurfaceView.Ren
 
 
     public float[][] evaluate(UnchunkedGenerator gen, Module mod, boolean return_predictions) {
+        float[][][][] batch_2d = gen.next_epoch();
+
+
+
+        float[] batch_2d_flat = flatten(batch_2d, shape);
+
+        Tensor inputTensor = Tensor.fromBlob(batch_2d_flat, shape);
+
+        Tensor predicted_3d_pos = mod.forward(IValue.from(inputTensor)).toTensor();
+
+        float[] result = predicted_3d_pos.getDataAsFloatArray();
+
+        Log.i(TAG, String.format("Result is lenght %d", result.length));
+
 
         return null;
     }
@@ -356,17 +411,49 @@ public class MainActivity extends AppCompatActivity implements GLSurfaceView.Ren
         //Perform inference
         Person person = posenet.estimateSinglePose(bitmap);
 
+        float[][]kpts = new float[17][2];
 
-        for (KeyPoint kp : person.getKeyPoints()) {
 
-            if (kp.getScore() > 0.8) {
-                float x = kp.getPosition().getX() * wdRatio;
-                float y = kp.getPosition().getY() * htRatio;
+        List<KeyPoint> result = person.getKeyPoints();
+
+        for (int i = 0; i < result.size(); i++) {
+            KeyPoint thisKpt = result.get(i);
+
+            float x = thisKpt.getPosition().getX() * wdRatio;
+            float y = thisKpt.getPosition().getY() * htRatio;
+
+
+            if (thisKpt.getScore() > 0.8) {
 
                 //draw this point on the preview
                 Imgproc.circle(im, new Point((int) x, (int) y), 2, new Scalar(0, 0, 255), 2);
             }
+
+            kpts[i][0] = x;
+            kpts[i][1] = y;
+
         }
+
+
+        if (frameNum == 0) {
+            keypts2d = Arrays.copyOf(keypts2d, 30);
+
+            for (int i = 0; i < 30; i++) {
+                keypts2d[i] = kpts;
+            }
+        }
+
+        else {
+            //do a pop
+            for (int i = 0; i < 29; i++) {
+                keypts2d[i] = keypts2d[i+1];
+            }
+
+            //append the current frame
+            keypts2d[29] = kpts;
+        }
+
+        interface3d(module, keypts2d, 720, 480);
 
         //whatever gets returned here is what's displayed
         return im;

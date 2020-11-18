@@ -181,6 +181,8 @@ def evaluate(test_generator, model_pos, action=None, return_predictions=False):
             #Run the positional model
             predicted_3d_pos = model_pos(inputs_2d)
 
+            print(predicted_3d_pos)
+
 
             if test_generator.augment_enabled():
                 # Undo flipping and take average with non-flipped version
