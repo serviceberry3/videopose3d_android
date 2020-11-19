@@ -61,8 +61,17 @@ dependencies {
     testImplementation 'junit:junit:4.+'
     androidTestImplementation 'androidx.test.ext:junit:1.1.2'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.3.0'
-    implementation 'org.pytorch:pytorch_android:1.7.0'
-    implementation 'org.pytorch:pytorch_android_torchvision:1.7.0'
+    //implementation 'org.pytorch:pytorch_android:1.7.0'
+    //implementation 'org.pytorch:pytorch_android_torchvision:1.7.0'
+    implementation 'org.pytorch:pytorch_android:1.8.0-SNAPSHOT'
+    implementation 'org.pytorch:pytorch_android_torchvision:1.8.0-SNAPSHOT'
 }
+
+repositories {
+    maven {
+        url "https://oss.sonatype.org/content/repositories/snapshots"
+    }
+}
+
 
 

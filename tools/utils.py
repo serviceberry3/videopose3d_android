@@ -181,7 +181,7 @@ def evaluate(test_generator, model_pos, action=None, return_predictions=False):
             #Run the positional model
             predicted_3d_pos = model_pos(inputs_2d)
 
-            print(predicted_3d_pos)
+            #print(predicted_3d_pos.shape)
 
 
             if test_generator.augment_enabled():
@@ -215,6 +215,11 @@ def videopose_model_load():
     #model_pos = model_pos.cuda()
 
     model_pos.load_state_dict(checkpoint['model_pos'])
+
+    # Print model's state_dict
+    print("Model's state_dict:")
+    for param_tensor in model_pos.state_dict():
+        print(param_tensor, "\t", model_pos.state_dict()[param_tensor].size())
 
     receptive_field = model_pos.receptive_field()
 

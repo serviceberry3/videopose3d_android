@@ -48,6 +48,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.nio.FloatBuffer;
 import java.sql.Array;
 import java.util.Arrays;
 import java.util.List;
@@ -85,6 +86,9 @@ public class MainActivity extends AppCompatActivity implements GLSurfaceView.Ren
 
     private float[][][] keypts2d = {};
 
+    private FloatBuffer mInputTensorBuffer = null;
+    private Tensor mInputTensor = null;
+
     //load up native C code
     static {
         System.loadLibrary("drawer");
@@ -100,7 +104,7 @@ public class MainActivity extends AppCompatActivity implements GLSurfaceView.Ren
         //set the view to main act view
         setContentView(R.layout.activity_main);
 
-        posenet = new Posenet(this, "posenet_model.tflite", Device.GPU);
+        posenet = new Posenet(this, "posenet_model.tflite", Device.NNAPI);
 
         imgDealed = (ImageView) findViewById(R.id.img_dealed);
 
@@ -145,6 +149,7 @@ public class MainActivity extends AppCompatActivity implements GLSurfaceView.Ren
             Log.e("PytorchHelloWorld", "Error reading assets", e);
             finish();
         }
+        
 
         Log.i("DBUG", "Read in VideoPose3D successfully");
 
@@ -215,16 +220,16 @@ public class MainActivity extends AppCompatActivity implements GLSurfaceView.Ren
 
     }
 
-
     public void onDestroy() {
         super.onDestroy();
         if (mOpenCvCameraView != null)
             mOpenCvCameraView.disableView();
     }
 
-
     //input (N, 17, 2) return (N, 17, 3)
     public float[][] interface3d(Module mod, float[][][] kpts, int width, int height) {
+        long start = System.currentTimeMillis();
+
         //do some correction of array format of kpts
 
         //float[][][] keypoints = new float[1][][];
@@ -242,6 +247,10 @@ public class MainActivity extends AppCompatActivity implements GLSurfaceView.Ren
 
         //min out prediction
 
+
+        long end = System.currentTimeMillis();
+        Log.i(TAG, String.format("interface3d took total %d ms", end - start));
+
         return prediction;
     }
 
@@ -250,16 +259,18 @@ public class MainActivity extends AppCompatActivity implements GLSurfaceView.Ren
     public float[] flatten(float[][][][] input, long[] shape) {
         long needed = 1;
 
+        long start = System.currentTimeMillis();
+
         for (int i = 0; i < shape.length; i++) {
             needed *= shape[i];
         }
 
-        Log.i(TAG, String.format("We need %d for ret", needed));
+        //Log.i(TAG, String.format("We need %d for ret", needed));
 
         float[] ret = new float[(int) needed];
 
-        Log.i(TAG, String.format("First dim is %d", input.length));
-        Log.i(TAG, String.format("Second dim is %d", input[0].length));
+        //Log.i(TAG, String.format("First dim is %d", input.length));
+        //Log.i(TAG, String.format("Second dim is %d", input[0].length));
 
 
         int head = 0;
@@ -273,6 +284,10 @@ public class MainActivity extends AppCompatActivity implements GLSurfaceView.Ren
                 }
             }
         }
+
+        long end = System.currentTimeMillis();
+
+        Log.i(TAG, String.format("flatten took %d ms", end-start));
 
         return ret;
     }
@@ -300,20 +315,41 @@ public class MainActivity extends AppCompatActivity implements GLSurfaceView.Ren
 
 
     public float[][] evaluate(UnchunkedGenerator gen, Module mod, boolean return_predictions) {
+        long start = System.currentTimeMillis();
+
         float[][][][] batch_2d = gen.next_epoch();
 
-
-
         float[] batch_2d_flat = flatten(batch_2d, shape);
+        //Log.i(TAG, String.format("Length of batch_2d_flat is %d", batch_2d_flat.length));
 
-        Tensor inputTensor = Tensor.fromBlob(batch_2d_flat, shape);
+        if (mInputTensorBuffer==null) {
+            //allocate the memory for input tensor data once
+            mInputTensorBuffer = Tensor.allocateFloatBuffer(batch_2d_flat.length);
+            mInputTensor = Tensor.fromBlob(mInputTensorBuffer, shape);
+        }
 
-        Tensor predicted_3d_pos = mod.forward(IValue.from(inputTensor)).toTensor();
+        //put data into input tensor
+        mInputTensorBuffer.clear();
+        mInputTensorBuffer.put(batch_2d_flat);
+
+        //Tensor inputTensor = Tensor.fromBlob(batch_2d_flat, shape);
+
+        Tensor predicted_3d_pos = mod.forward(IValue.from(mInputTensor)).toTensor();
 
         float[] result = predicted_3d_pos.getDataAsFloatArray();
 
-        Log.i(TAG, String.format("Result is lenght %d", result.length));
 
+        /*
+        long[] shape = predicted_3d_pos.shape();
+
+        for (long l : shape) {
+            Log.i(TAG, String.format("Shape: %d", (int)l));
+        }
+
+        //Log.i(TAG, String.format("Result is length %d", result.length));*/
+
+        long end = System.currentTimeMillis();
+        Log.i(TAG, String.format("evaluate took total %d ms", end - start));
 
         return null;
     }
@@ -364,7 +400,7 @@ public class MainActivity extends AppCompatActivity implements GLSurfaceView.Ren
 
     @Override
     public void onDrawFrame(GL10 gl10) {
-        Log.i(TAG, "Rendering the frame...");
+        //Log.i(TAG, "Rendering the frame...");
         NdkHelper.glesRender();
     }
 
@@ -386,74 +422,87 @@ public class MainActivity extends AppCompatActivity implements GLSurfaceView.Ren
 
     @Override
     public Mat onCameraFrame(CameraBridgeViewBase.CvCameraViewFrame inputFrame) {
+        long start = System.currentTimeMillis();
+
         //get the frame as a mat in RGBA format
         Mat im = inputFrame.rgba();
-        Mat im_resized = new Mat();
-
-        Imgproc.resize(im, im_resized, new Size(257, 257));
-
-        Log.i(TAG, String.format("Image is %d x %d", im.width(), im.height()));
-
-        Bitmap bitmap = Bitmap.createBitmap(257, 257, Bitmap.Config.ARGB_8888);
-
-        org.opencv.android.Utils.matToBitmap(im_resized, bitmap);
-
-        Log.i(TAG, String.format("Bitmap is %d x %d", bitmap.getWidth(), bitmap.getHeight()));
-
-        float htRatio = 480f/257f;
-        float wdRatio = 720f/257f;
-
-        //Bitmap croppedBitmap = cropBitmap(bitmap);
-
-        //Created scaled version of bitmap for model input (scales it to 257 x 257)
-        //Bitmap scaledBitmap = Bitmap.createScaledBitmap(croppedBitmap, 257, 257, true);
-
-        //Perform inference
-        Person person = posenet.estimateSinglePose(bitmap);
-
-        float[][]kpts = new float[17][2];
 
 
-        List<KeyPoint> result = person.getKeyPoints();
-
-        for (int i = 0; i < result.size(); i++) {
-            KeyPoint thisKpt = result.get(i);
-
-            float x = thisKpt.getPosition().getX() * wdRatio;
-            float y = thisKpt.getPosition().getY() * htRatio;
+        if (frameNum % 2 != 1) {
 
 
-            if (thisKpt.getScore() > 0.8) {
+            Mat im_resized = new Mat();
 
-                //draw this point on the preview
-                Imgproc.circle(im, new Point((int) x, (int) y), 2, new Scalar(0, 0, 255), 2);
+            Imgproc.resize(im, im_resized, new Size(257, 257));
+
+            Log.i(TAG, String.format("Image is %d x %d", im.width(), im.height()));
+
+            Bitmap bitmap = Bitmap.createBitmap(257, 257, Bitmap.Config.ARGB_8888);
+
+            org.opencv.android.Utils.matToBitmap(im_resized, bitmap);
+
+            Log.i(TAG, String.format("Bitmap is %d x %d", bitmap.getWidth(), bitmap.getHeight()));
+
+            float htRatio = 480f / 257f;
+            float wdRatio = 720f / 257f;
+
+            //Bitmap croppedBitmap = cropBitmap(bitmap);
+
+            //Created scaled version of bitmap for model input (scales it to 257 x 257)
+            //Bitmap scaledBitmap = Bitmap.createScaledBitmap(croppedBitmap, 257, 257, true);
+
+            //Perform inference
+            Person person = posenet.estimateSinglePose(bitmap);
+
+            float[][] kpts = new float[17][2];
+
+
+            List<KeyPoint> result = person.getKeyPoints();
+
+            for (int i = 0; i < result.size(); i++) {
+                KeyPoint thisKpt = result.get(i);
+
+                float x = thisKpt.getPosition().getX() * wdRatio;
+                float y = thisKpt.getPosition().getY() * htRatio;
+
+
+                if (thisKpt.getScore() > 0.8) {
+
+                    //draw this point on the preview
+                    Imgproc.circle(im, new Point((int) x, (int) y), 2, new Scalar(0, 0, 255), 2);
+                }
+
+                kpts[i][0] = x;
+                kpts[i][1] = y;
+
             }
 
-            kpts[i][0] = x;
-            kpts[i][1] = y;
+            if (frameNum == 0) {
+                keypts2d = Arrays.copyOf(keypts2d, 30);
 
-        }
-
-
-        if (frameNum == 0) {
-            keypts2d = Arrays.copyOf(keypts2d, 30);
-
-            for (int i = 0; i < 30; i++) {
-                keypts2d[i] = kpts;
-            }
-        }
-
-        else {
-            //do a pop
-            for (int i = 0; i < 29; i++) {
-                keypts2d[i] = keypts2d[i+1];
+                for (int i = 0; i < 30; i++) {
+                    keypts2d[i] = kpts;
+                }
             }
 
-            //append the current frame
-            keypts2d[29] = kpts;
+            else {
+                //do a pop
+                for (int i = 0; i < 29; i++) {
+                    keypts2d[i] = keypts2d[i + 1];
+                }
+
+                //append the current frame
+                keypts2d[29] = kpts;
+            }
+
+            interface3d(module, keypts2d, 720, 480);
         }
 
-        interface3d(module, keypts2d, 720, 480);
+        frameNum++;
+
+        long end = System.currentTimeMillis();
+
+        Log.i(TAG, String.format("onCameraFrame took total %d ms", end-start));
 
         //whatever gets returned here is what's displayed
         return im;

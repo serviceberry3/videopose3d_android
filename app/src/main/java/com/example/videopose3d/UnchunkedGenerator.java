@@ -98,17 +98,19 @@ public class UnchunkedGenerator {
 
 
     public float[][][][] next_epoch() {
+        /*
         Log.i("DBUG", String.format("poses_2d dim 1 is %d", poses_2d.length));
         Log.i("DBUG", String.format("poses_2d dim 2 is %d", poses_2d[0].length));
-        Log.i("DBUG", String.format("poses_2d dim 3 is %d", poses_2d[0][0].length));
+        Log.i("DBUG", String.format("poses_2d dim 3 is %d", poses_2d[0][0].length));*/
 
 
 
         float[][][] padded2dKpts = pad_edges(poses_2d, 121, 121);
 
+        /*
         Log.i("DBUG", String.format("padded2dKpts dim 1 is %d", padded2dKpts.length));
         Log.i("DBUG", String.format("padded2dKpts dim 2 is %d", padded2dKpts[0].length));
-        Log.i("DBUG", String.format("padded2dKpts dim 3 is %d", padded2dKpts[0][0].length));
+        Log.i("DBUG", String.format("padded2dKpts dim 3 is %d", padded2dKpts[0][0].length));*/
 
         float[][][][] newPadded2dKpts = new float[1][][][];
 

@@ -10,6 +10,7 @@ import pyqtgraph.opengl as gl
 import pyqtgraph as pg
 from pyqtgraph.opengl import *
 import cv2
+import timeit
 
 #progress bar animator
 from tqdm import tqdm
@@ -136,6 +137,8 @@ class Visualizer(object):
             #resize the incoming image frame
             frame, W, H = resize_img(frame)
 
+            start = time.time()
+
             #run Posenet inference to find the 2D joint keypoints
             joints_2D = estimate_pose(frame)
 
@@ -156,6 +159,9 @@ class Visualizer(object):
 
             #run 2D-3D inference using VideoPose3D model
             joint3D = interface3d(model3D, np.array(self.kpt2Ds), W, H)
+
+            end = time.time()
+            #print("ELAPSED:", end-start)
 
             #get the 3d coordinates
             pos = joint3D[-1] #(17, 3)
@@ -201,6 +207,9 @@ class Visualizer(object):
 
 
 def main():
+    model3D = Model3Dload()
+
+
     #Instantiate a Visualizer object for the input video file
     v = Visualizer()
 

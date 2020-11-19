@@ -6,6 +6,7 @@
 #
 
 import torch.nn as nn
+import torch
 
 '''Wrapper around PyTorch Module, which is base class for all neural network modules. 
 Models should always subclass this class. Modules can also contain other Modules, allowing to nest them in
@@ -62,10 +63,26 @@ class TemporalModel(nn.Module):
         self.causal_shift = [ (filter_widths[0]) // 2 if causal else 0 ]
         next_dilation = filter_widths[0]
 
+        self.features = nn.ModuleDict({})
+
+        #self.features.add_module('conv0', nn.Conv1d(channels, channels, filter_widths[i] if not dense else (2*self.pad[-1] + 1), dilation=next_dilation if not dense else 1, bias=False))
+
         #iterate from 1 thru 4
         for i in range(1, len(filter_widths)):
             self.pad.append((filter_widths[i] - 1) * next_dilation // 2)
             self.causal_shift.append((filter_widths[i]//2 * next_dilation) if causal else 0)
+
+
+            '''
+            self.features.add_module('conv'+str(i), nn.Conv1d(channels, channels, filter_widths[i] if not dense else (2*self.pad[-1] + 1), dilation=next_dilation if not dense else 1, bias=False))
+            self.features.add_module('bn'+str(i), nn.BatchNorm1d(channels, momentum=0.1))
+
+
+
+            self.features.add_module('conv'+str(i)+'2', nn.Conv1d(channels, channels, 1, dilation=1, bias=False))
+            self.features.add_module('bn'+str(i)+'2', nn.BatchNorm1d(channels, momentum=0.1))'''
+
+
             
             
             layers_conv.append(nn.Conv1d(channels, channels, filter_widths[i] if not dense else (2*self.pad[-1] + 1), dilation=next_dilation if not dense else 1, bias=False))
@@ -100,7 +117,7 @@ class TemporalModel(nn.Module):
 
         
         self.layers_conv = nn.ModuleList(layers_conv)    #ALT IS MODULEDICT
-        print(layers_conv)
+        #print(layers_conv)
         self.layers_bn = nn.ModuleList(layers_bn)
         
 
@@ -184,6 +201,8 @@ class TemporalModel(nn.Module):
         assert x.shape[-2] == self.num_joints_in
         assert x.shape[-1] == self.in_features
         
+        x.contiguous(memory_format=torch.channels_last)
+
         sz = x.shape[:3]
         x = x.view(x.shape[0], x.shape[1], -1)
         x = x.permute(0, 2, 1)
@@ -192,6 +211,7 @@ class TemporalModel(nn.Module):
         
         x = x.permute(0, 2, 1)
         x = x.view(sz[0], -1, self.num_joints_out, 3)
+
         
         return x
 
@@ -220,7 +240,7 @@ def get_layers_to_fuse(model):
 
         layers.append('relu')
 
-    print([layers])
+    #print([layers])
     return [layers]
 
 
