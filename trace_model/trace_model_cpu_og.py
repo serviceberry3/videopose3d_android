@@ -51,4 +51,5 @@ s = torch.jit.script(q)
 
 mobile_optimized = mobile_optimizer.optimize_for_mobile(s)
 
-torch.jit.save(mobile_optimized, "../processed_mod.pt")
+#store the scripted model in parent directory of this repo
+torch.jit.save(mobile_optimized, "../../processed_mod.pt")
