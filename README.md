@@ -7,7 +7,7 @@ UPDATE(01/07/21): The inference runs too slowly for Android right now. I looked 
 UPDATE(11/13/20): I've loaded the model into the Android app as a Torch Script. Fun visualization to come. I think each pair of Conv1D and BatchNorm1D layers can be fused together as well to improve runtime and memory usage.
 
 Instructions:
-run trace_model.py, which will store the output .pt in parent directory of this repo.
+run trace_model_cpu_og.py, which will store the output .pt in parent directory of this repo.
 Copy the .pt file into the assets folder of the android src/main/ dir.
 
 UPDATE(11/12/20): I've swapped out Detectron for Posenet and got the visualization working on my computer. You need to download the Posenet lite model: 
