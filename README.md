@@ -2,6 +2,12 @@ There's some demand for an Android app that implements Facebook Research's recen
 
 Note: using Detectron2 on Android would be too slow, so I'll try using TfLite Posenet to get the 2D human keypoints and then feeding them into Facebook's 3D model.  
 
+This is what the app should look like right now:
+
+
+![VideoPose3D Android test](https://github.com/seviceberry3/videopose3d_android/blob/master/img/videopose_androidtest.jpg?raw=true)
+Note that since it was so slow, I didn't even bother drawing the human on the grid.
+
 UPDATE(01/07/21): The inference runs too slowly for Android right now. I looked into running it on the GPU to speed things up, which you might be able to do using Xiaomi MACE (tutorial is [here](https://v-hramchenko.medium.com/run-your-pytorch-model-on-android-gpu-using-libmace-7e43f623d95c)), but that library is meant for devices that have OpenCL support, and my device doesn't. It would probably still run too slowly. PyTorch recently released support for running models using Android's NNAPI, but so far I haven't been able to get it to work. I'm looking into substituting VideoPose3D for a lighter, faster model.
 
 UPDATE(11/13/20): I've loaded the model into the Android app as a Torch Script. Fun visualization to come. I think each pair of Conv1D and BatchNorm1D layers can be fused together as well to improve runtime and memory usage.
