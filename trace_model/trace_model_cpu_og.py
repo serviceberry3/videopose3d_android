@@ -1,3 +1,6 @@
+import sys
+sys.path.append("..")
+
 import torch
 import torchvision
 import torch.utils.mobile_optimizer as mobile_optimizer
